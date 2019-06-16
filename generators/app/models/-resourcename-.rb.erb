@@ -1,0 +1,10 @@
+# frozen_string_literal: true
+
+# Description of the <%= name.to_s.camelize %> model
+<% resource.fields.each do |field_name, field| %>
+# @!attribute <%= field_name %>
+#   @return [<%= field[:type].to_s.camelize %>] Description of this attribute
+<% end -%>
+class <%= name.to_s.camelize %> < ApplicationRecord
+  has_paper_trail
+end

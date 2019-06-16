@@ -1,0 +1,87 @@
+# frozen_string_literal: true
+
+module V1
+  # Endpoint to check the health of the server
+  class <%= name.to_s.pluralize.camelize %>Api < Grape::API
+    resource :<%= name.to_s.pluralize %> do
+      desc 'Get <%= name.to_s.pluralize %>'
+      params do
+        optional :page, type: Integer
+        optional :count, type: Integer
+      end
+      get do
+        count = params[:count] || 20
+        page = params[:page] || 1
+        page = [1, page].max
+        count = [1, count].max
+        count = [count, 50].min
+        {
+          page: page,
+          count: count,
+          results: <%= name.to_s.camelize %>.limit(count).offset((page - 1) * count)
+        }
+      end
+
+      desc 'Create a new <%= name %>'
+      params do
+        <% resource.fields.each do |field_name, field| %>
+        requires :<%= field_name %>, type: <%= field[:type].to_s.camelize %>
+        <% end %>
+      end
+      post do
+        { result: <%= name.to_s.camelize %>.create(params) }
+      end
+
+      params do
+        requires :id, type: String, desc: 'ID of <%= name %>'
+      end
+      route_param :id do
+        before do
+          @item = <%= name.to_s.camelize %>.find_by(id: params[:id])
+          if @item.nil?
+            error!({ error: :not_found }, 404)
+          end
+        end
+
+        desc 'Get a <%= name %>'
+        get do
+          { result: @item }
+        end
+
+        desc 'Change a <%= name %>'
+        patch do
+          { result: :ok }
+        end
+
+        desc 'Delete a <%= name %>'
+        delete do
+          @item.destroy!
+          { result: :ok }
+        end
+
+        <% resource.fields.each do |field_name, field| %>
+        resource :<%= field_name %> do
+          desc 'Get the <%= field_name %> of the <%= name %>'
+          get do
+            {
+              result: @item.name
+            }
+          end
+
+          desc 'Set the <%= field_name %> of the <%= name %>'
+          params do
+            requires :value, type: <%= field[:type].to_s.camelize %>
+          end
+          put do
+            @item.<%= field_name %> = params[:value]
+            @item.save!
+            {
+              result: @item.name
+            }
+          end
+        end
+        <% end %>
+      end
+    end
+  end
+end

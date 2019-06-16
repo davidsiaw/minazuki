@@ -1,0 +1,12 @@
+# frozen_string_literal: true
+
+class Create<%= name.to_s.pluralize.camelize %> < ActiveRecord::Migration[5.2]
+  def change
+    create_table :<%= name.to_s.pluralize %>, id: :uuid do |t|
+      <% resource.fields.each do |field_name, field| %>
+      t.<%= field[:type] %> :<%= field_name %>
+      <% end %>
+      t.datetime :updated_at
+    end
+  end
+end
