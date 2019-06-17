@@ -157,18 +157,29 @@ dsl.instance_eval do
 
   resource_class :artist do
     field :name, type: :string
+    # has_many :song
+    # has_many :band
+  end
+
+  resource_class :album do
+    field :name, type: :string
+    # has_many :song
   end
 
   resource_class :song do
     field :name, type: :string
     field :url, type: :string
     field :length_seconds, type: :integer
+    # might_be :derivation
 
-    # collection :alt_song_name
+    # collection :alt_name do
+    #   field :name, type: :string
+    # end
   end
 
-  resource_class :alt_song_name do
-    field :name, type: :string
+  resource_class :derivation do
+    # field :type, type: enum(%i[remix cover instrumental arrangement])
+    # has_a :original, type: :song
   end
 end
 
