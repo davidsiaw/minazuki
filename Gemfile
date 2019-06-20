@@ -3,4 +3,5 @@
 source 'https://rubygems.org'
 
 gem 'activesupport'
+gem 'bunny-tsort'
 gem 'erubis'

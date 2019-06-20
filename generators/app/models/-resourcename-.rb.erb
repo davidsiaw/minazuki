@@ -7,4 +7,34 @@
 <% end -%>
 class <%= name.to_s.camelize %> < ApplicationRecord
   has_paper_trail
+
+  <% resource.parent_names.each do |parent| %>
+  belongs_to :<%= parent %>, autosave: true
+  <% end %>
+
+  <% resource.parent_fields.each do |parent, fields| %>
+  <% if fields.count > 0 -%>
+  delegate :<%= fields.first[0] %>,
+           :<%= fields.first[0] %>=,
+  <% end -%>
+  <% if fields.count > 1 -%>
+    <% fields.to_a[1..-1].each do |field_name, _| %>
+           :<%= field_name %>,
+           :<%= field_name %>=,
+    <% end %>
+           to: :make_<%= parent %>
+  <% end %>
+
+  ulid :<%= parent %>_id
+  after_initialize :make_<%= parent %>
+  before_validation :save_<%= parent %>
+
+  def make_<%= parent %>
+    self.<%= parent %> ||= <%= parent.to_s.camelize %>.new
+  end
+
+  def save_<%= parent %>
+    self.<%= parent %>.save!
+  end
+  <% end -%>
 end

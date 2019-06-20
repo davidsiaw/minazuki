@@ -4,6 +4,7 @@ require 'active_support/inflector'
 require 'date'
 require 'fileutils'
 require 'erubis'
+require 'bunny/tsort'
 
 # Global generator
 class GlobalGenerator
@@ -56,7 +57,7 @@ class Generator
   end
 
   def generate
-    prepare_program!
+    #prepare_program!
     generate_resources!
     generate_globals!
   end
@@ -64,7 +65,26 @@ class Generator
   private
 
   def resources
-    @dsl.resources
+    @resources ||= prepare_resources
+  end
+
+  def resource_tree
+    Bunny::Tsort.tsort(@dsl.resources.map do |k, r|
+      [k, r.parents.map { |e| e }.to_a]
+    end.to_h)
+  end
+
+  def prepare_resources
+    result = {}
+    resource_tree.each do |arr|
+      arr.each do |resourcename|
+        r = @dsl.resources[resourcename]
+        result[resourcename] = PreparedResourceClass.new(
+          r.fields, r.parents.map { |e| [e, result[e]] }.to_h
+        )
+      end
+    end
+    result
   end
 
   def generator_files
@@ -116,18 +136,54 @@ class Generator
   end
 end
 
+# resource used for generation
+class PreparedResourceClass
+  attr_reader :fields
+
+  def initialize(fields, parents)
+    @fields = fields
+    @parents = parents
+  end
+
+  def parent_fields
+    @parent_fields ||= compile_fields
+  end
+
+  def parent_names
+    @parents.keys
+  end
+
+  private
+
+  def compile_fields
+    result = {}
+    @parents.each do |parent_name, parent_resource|
+      result[parent_name] = parent_resource.fields
+      parent_resource.parent_fields.each do |gparent_name, gparent_fields|
+        result[parent_name] = gparent_fields
+      end
+    end
+    result
+  end
+end
+
 # resource
 class ResourceClass
-  attr_reader :fields
+  attr_reader :fields, :parents
 
   def initialize
     @fields = {}
+    @parents = Set.new
   end
 
   private
 
   def field(name, options = {})
     @fields[name] = options
+  end
+
+  def extends(resource_class)
+    @parents << resource_class
   end
 end
 
@@ -157,8 +213,6 @@ dsl.instance_eval do
 
   resource_class :artist do
     field :name, type: :string
-    # has_many :song
-    # has_many :band
   end
 
   resource_class :album do
@@ -170,7 +224,7 @@ dsl.instance_eval do
     field :name, type: :string
     field :url, type: :string
     field :length_seconds, type: :integer
-    # might_be :derivation
+    # has_many :artist
 
     # collection :alt_name do
     #   field :name, type: :string
@@ -178,17 +232,33 @@ dsl.instance_eval do
   end
 
   resource_class :derivation do
-    # field :type, type: enum(%i[remix cover instrumental arrangement])
-    # has_a :original, type: :song
+    extends :song
+    # field :original, type: :song
+  end
+
+  resource_class :remix do
+    extends :derivation
+  end
+
+  resource_class :cover do
+    extends :derivation
+  end
+
+  resource_class :instrumental do
+    extends :derivation
+  end
+
+  resource_class :arrange do
+    extends :derivation
   end
 end
 
 gen = Generator.new dsl
 gen.generate
 
-exec <<-START
-cd rails-zen &&
-docker-compose -f docker-compose.unit.yml up -d
-docker logs -f rz
-docker-compose -f rails-zen/docker-compose.unit.yml down -v
+exec <<~START
+  cd rails-zen &&
+  docker-compose -f docker-compose.unit.yml up -d
+  docker logs -f rz
+  docker-compose -f rails-zen/docker-compose.unit.yml down -v
 START

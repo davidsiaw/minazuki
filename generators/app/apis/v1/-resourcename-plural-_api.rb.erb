@@ -4,7 +4,9 @@ module V1
   # Endpoint to access <%= name.to_s.pluralize.humanize %>
   class <%= name.to_s.pluralize.camelize %>Api < Grape::API
     resource :<%= name.to_s.pluralize %> do
-      desc 'Get <%= name.to_s.pluralize.humanize %>'
+      desc 'Get <%= name.to_s.pluralize.humanize %>' do
+        success V1::<%= name.to_s.camelize %>Entity::<%= name.to_s.camelize %>CollectionDocumentation
+      end
       params do
         optional :page, type: Integer
         optional :count, type: Integer
@@ -19,25 +21,27 @@ module V1
         count = [count, 50].min
         result = <%= name.to_s.camelize %>.limit(count).offset((page - 1) * count)
         result = result.order("#{params[:sort]} #{params[:order].upcase}")
-        sort = params[:sort]
-        order = params[:order]
-        {
-          page: page,
-          count: count,
-          sort: sort,
-          order: order,
-          results: result
-        }
+        present result, with: V1::<%= name.to_s.camelize %>Entity
       end
 
-      desc 'Create a new <%= name.to_s.humanize %>'
+      desc 'Create a new <%= name.to_s.humanize %>' do
+        success V1::<%= name.to_s.camelize %>Entity::<%= name.to_s.camelize %>Documentation
+      end
       params do
         <% resource.fields.each do |field_name, field| %>
         requires :<%= field_name %>, type: <%= field[:type].to_s.camelize %>
         <% end %>
+
+        <% resource.parent_fields.each do |parent, fields| %>
+        # Inherited from <%= parent %>
+        <% fields.each do |field_name, field| %>
+        requires :<%= field_name %>, type: <%= field[:type].to_s.camelize %>
+        <% end -%>
+        <% end -%>
       end
       post do
-        { result: <%= name.to_s.camelize %>.create(params) }
+        item = <%= name.to_s.camelize %>.create!(params)
+        present item, with: V1::<%= name.to_s.camelize %>Entity
       end
 
       params do
@@ -49,14 +53,18 @@ module V1
           error!({ error: :not_found }, 404) if @item.nil?
         end
 
-        desc 'Get a <%= name.to_s.humanize %>'
+        desc 'Get a <%= name.to_s.humanize %>' do
+          success V1::<%= name.to_s.camelize %>Entity::<%= name.to_s.camelize %>Documentation
+        end
         get do
-          { result: @item }
+          present @item, with: V1::<%= name.to_s.camelize %>Entity
         end
 
-        desc 'Change a <%= name.to_s.humanize %>'
+        desc 'Change a <%= name.to_s.humanize %>' do
+          success V1::<%= name.to_s.camelize %>Entity::<%= name.to_s.camelize %>Documentation
+        end
         patch do
-          { result: :ok }
+          present @item, with: V1::<%= name.to_s.camelize %>Entity
         end
 
         desc 'Delete a <%= name.to_s.humanize %>'
@@ -87,6 +95,32 @@ module V1
           end
         end
         <% end %>
+        
+        <% resource.parent_fields.each do |parent, fields| %>
+        # Inherited from <%= parent %>
+        <% fields.each do |field_name, field| %>
+        resource :<%= field_name %> do
+          desc 'Get the <%= field_name.to_s.humanize %> of the <%= name.to_s.humanize %>'
+          get do
+            {
+              result: @item.name
+            }
+          end
+
+          desc 'Set the <%= field_name.to_s.humanize %> of the <%= name.to_s.humanize %>'
+          params do
+            requires :value, type: <%= field[:type].to_s.camelize %>
+          end
+          put do
+            @item.<%= field_name %> = params[:value]
+            @item.save!
+            {
+              result: @item.name
+            }
+          end
+        end
+        <% end -%>
+        <% end -%>
       end
     end
   end

@@ -6,6 +6,9 @@ class Create<%= name.to_s.pluralize.camelize %> < ActiveRecord::Migration[5.2]
       <% resource.fields.each do |field_name, field| %>
       t.<%= field[:type] %> :<%= field_name %>
       <% end %>
+      <% resource.parent_names.each do |name| %>
+      t.belongs_to :<%= name %>, index: true, null: false, foreign_key: true
+      <% end %>
       t.datetime :updated_at
     end
   end
