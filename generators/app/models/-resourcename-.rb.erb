@@ -8,6 +8,13 @@
 class <%= name.to_s.camelize %> < ApplicationRecord
   has_paper_trail
 
+  <% resource.fields.each do |field_name, field| %>
+  <%   unless %i[string integer].include? field[:type] %>
+  ulid :<%= field_name %>_id
+  belongs_to :<%= field_name %>, class_name: '<%= field[:type].to_s.camelize %>', foreign_key: :<%= field_name %>_id
+  <%   end -%>
+  <% end -%>
+
   <% resource.parent_names.each do |parent| %>
   belongs_to :<%= parent %>, autosave: true
   <% end %>

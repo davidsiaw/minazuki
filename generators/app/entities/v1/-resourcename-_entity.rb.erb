@@ -6,7 +6,11 @@ module V1
     root '<%= name.to_s.pluralize %>', '<%= name.to_s %>'
     expose :id
     <% resource.fields.each do |field_name, field| %>
+    <%   if %i[string integer].include? field[:type] %>
     expose :<%= field_name %>
+    <%   else %>
+    expose :<%= field_name %>, using: <%= field[:type].to_s.camelize %>Entity
+    <%   end %>
     <% end %>
 
     <% resource.parent_fields.each do |parent, fields| %>

@@ -233,7 +233,7 @@ dsl.instance_eval do
 
   resource_class :derivation do
     extends :song
-    # field :original, type: :song
+    field :original, type: :song
   end
 
   resource_class :remix do
