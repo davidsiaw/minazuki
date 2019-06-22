@@ -158,7 +158,7 @@ class PreparedResourceClass
   def compile_fields
     result = {}
     @parents.each do |parent_name, parent_resource|
-      result[parent_name] = parent_resource.fields
+      result[parent_name] = parent_resource.fields.dup
       parent_resource.parent_fields.each do |gparent_name, gparent_fields|
         result[parent_name].merge! gparent_fields
       end

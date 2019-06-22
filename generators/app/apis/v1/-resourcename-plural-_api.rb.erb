@@ -10,7 +10,7 @@ module V1
       params do
         optional :page, type: Integer
         optional :count, type: Integer
-        optional :sort, type: Symbol, values: %i[id <%= resource.fields.map { |n, _| n }.join(' ') %>], default: :id
+        optional :sort, type: Symbol, values: %i[<%= (resource.fields.map { |n, _| n } + [:id] + resource.parent_fields.map{ |k, fields| fields.keys.select { |k| %i[string integer].include?(fields[k][:type]) } }.flatten ).join(' ') %>], default: :id
         optional :order, type: Symbol, values: %i[asc desc], default: :asc
       end
       get do
@@ -20,7 +20,7 @@ module V1
         count = [1, count].max
         count = [count, 50].min
         result = <%= name.to_s.camelize %>.limit(count).offset((page - 1) * count)
-        result = result.order("#{params[:sort]} #{params[:order].upcase}")
+        result = result.ordered_by(params[:sort], params[:order])
         present result, with: V1::<%= name.to_s.camelize %>Entity
       end
 
