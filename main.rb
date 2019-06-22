@@ -138,7 +138,7 @@ end
 
 # resource used for generation
 class PreparedResourceClass
-  attr_reader :fields
+  attr_reader :fields, :parents
 
   def initialize(fields, parents)
     @fields = fields
@@ -160,7 +160,7 @@ class PreparedResourceClass
     @parents.each do |parent_name, parent_resource|
       result[parent_name] = parent_resource.fields
       parent_resource.parent_fields.each do |gparent_name, gparent_fields|
-        result[parent_name] = gparent_fields
+        result[parent_name].merge! gparent_fields
       end
     end
     result

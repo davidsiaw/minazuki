@@ -20,17 +20,16 @@ class <%= name.to_s.camelize %> < ApplicationRecord
   <% end %>
 
   <% resource.parent_fields.each do |parent, fields| %>
-  <% if fields.count > 0 -%>
-  delegate :<%= fields.first[0] %>,
-           :<%= fields.first[0] %>=,
-  <% end -%>
-  <% if fields.count > 1 -%>
-    <% fields.to_a[1..-1].each do |field_name, _| %>
-           :<%= field_name %>,
-           :<%= field_name %>=,
+  delegate \
+  <%- fields.each do |field_name, field| -%>
+    :<%= field_name %>,
+    :<%= field_name %>=,
+    <% unless %i[string integer].include? field[:type] %>
+    :<%= field_name %>_id,
+    :<%= field_name %>_id=,
     <% end %>
-           to: :make_<%= parent %>
-  <% end %>
+  <%- end -%>
+    to: :make_<%= parent %>
 
   ulid :<%= parent %>_id
   after_initialize :make_<%= parent %>

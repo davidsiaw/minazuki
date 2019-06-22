@@ -16,7 +16,11 @@ module V1
     <% resource.parent_fields.each do |parent, fields| %>
     # Inherited from <%= parent %>
     <% fields.each do |field_name, field| %>
+    <%   if %i[string integer].include? field[:type] %>
     expose :<%= field_name %>
+    <%   else %>
+    expose :<%= field_name %>, using: <%= field[:type].to_s.camelize %>Entity
+    <%   end %>
     <% end -%>
     <% end -%>
     expose :updated_at

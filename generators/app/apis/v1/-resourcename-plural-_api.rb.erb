@@ -39,7 +39,11 @@ module V1
         <% resource.parent_fields.each do |parent, fields| %>
         # Inherited from <%= parent %>
         <% fields.each do |field_name, field| %>
+        <%   if %i[string integer].include? field[:type] %>
         requires :<%= field_name %>, type: <%= field[:type].to_s.camelize %>
+        <%   else %>
+        requires :<%= field_name %>_id, type: String
+        <%   end %>
         <% end -%>
         <% end -%>
       end
