@@ -45,11 +45,11 @@ class <%= name.to_s.camelize %> < ApplicationRecord
   <% end -%>
 
   scope :ordered_by, ->(attrib, direction) do
-  <% resource.parent_fields.each do |parent, fields| %>
+    <% resource.parent_fields.each do |parent, fields| %>
     if %i[<%= fields.keys.select { |k| %i[string integer].include?(fields[k][:type]) }.join(' ') %>].include? attrib
       return joins(:<%= parent %>).merge(<%= parent.to_s.camelize %>.ordered_by(attrib, direction))
     end
-  <%- end -%>
+    <%- end -%>
 
     order(attrib.to_sym => direction.to_sym)
   end

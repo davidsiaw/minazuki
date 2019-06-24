@@ -111,19 +111,32 @@ module V1
           desc 'Get the <%= field_name.to_s.humanize %> of the <%= name.to_s.humanize %>'
           get do
             {
-              result: @item.name
+              result: @item.<%= field_name %>
             }
           end
 
           desc 'Set the <%= field_name.to_s.humanize %> of the <%= name.to_s.humanize %>'
           params do
-            requires :value, type: <%= field[:type].to_s.camelize %>
+          <% if %i[string integer].include? field[:type] %>
+            requires :value, type: <%= field[:type].to_s.camelize %>, desc: 'New <%= field_name %>'
+          <% else %>
+            requires :value, type: String, desc: 'New <%= field_name %>'
+          <% end %>
           end
           put do
+            <% if %i[string integer].include? field[:type] %>
             @item.<%= field_name %> = params[:value]
+            <% else %>
+            @item.<%= field_name %>_id = params[:value]
+            <% end %>
+            begin
             @item.save!
+            rescue ActiveRecord::RecordInvalid => e
+            p e
+            error!({ error: :invalid_value }, 400)
+            end
             {
-              result: @item.name
+              result: @item.<%= field_name %>
             }
           end
         end
