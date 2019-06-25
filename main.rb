@@ -70,7 +70,7 @@ class Generator
 
   def resource_tree
     Bunny::Tsort.tsort(@dsl.resources.map do |k, r|
-      [k, r.parents.map { |e| e }.to_a]
+      [k, r.parent ? [r.parent] : []]
     end.to_h)
   end
 
@@ -78,10 +78,13 @@ class Generator
     result = {}
     resource_tree.each do |arr|
       arr.each do |resourcename|
+        next if resourcename.nil?
+
         r = @dsl.resources[resourcename]
         result[resourcename] = PreparedResourceClass.new(
-          r.fields, r.parents.map { |e| [e, result[e]] }.to_h
+          r.fields, r.parent, result[r.parent]
         )
+
       end
     end
     result
@@ -103,7 +106,7 @@ class Generator
     resource_files.each do |file|
       template = File.read(file)
       resources.each_with_index do |(name, resource), index|
-        generator = Erubis::Eruby.new(template)
+        generator = Erubis::Eruby.new(template, filename: file)
         rg = ResourceGenerator.new(file, name, resource, index)
         FileUtils.mkdir_p File.dirname(rg.filename)
         File.write(rg.filename, generator.result(rg.send(:binding)))
@@ -138,30 +141,27 @@ end
 
 # resource used for generation
 class PreparedResourceClass
-  attr_reader :fields, :parents
+  attr_reader :fields, :parent_name, :parent_resource
 
-  def initialize(fields, parents)
+  def initialize(fields, parent_name, parent_resource)
     @fields = fields
-    @parents = parents
+    @parent_name = parent_name
+    @parent_resource = parent_resource
   end
 
   def parent_fields
     @parent_fields ||= compile_fields
   end
 
-  def parent_names
-    @parents.keys
-  end
-
   private
 
   def compile_fields
+    return [] if @parent_name.nil?
+
     result = {}
-    @parents.each do |parent_name, parent_resource|
-      result[parent_name] = parent_resource.fields.dup
-      parent_resource.parent_fields.each do |gparent_name, gparent_fields|
-        result[parent_name].merge! gparent_fields
-      end
+    result[parent_name] = parent_resource.fields.dup
+    parent_resource.parent_fields.each do |_gparent_name, gparent_fields|
+      result[parent_name].merge! gparent_fields
     end
     result
   end
@@ -169,21 +169,17 @@ end
 
 # resource
 class ResourceClass
-  attr_reader :fields, :parents
+  attr_reader :fields, :parent
 
-  def initialize
+  def initialize(parent_class:)
     @fields = {}
-    @parents = Set.new
+    @parent = parent_class
   end
 
   private
 
   def field(name, options = {})
     @fields[name] = options
-  end
-
-  def extends(resource_class)
-    @parents << resource_class
   end
 end
 
@@ -197,8 +193,8 @@ class DSL
 
   private
 
-  def resource_class(name, &block)
-    rc = ResourceClass.new
+  def resource_class(name, extends: nil, &block)
+    rc = ResourceClass.new(parent_class: extends)
     rc.instance_eval(&block)
     @resources[name] = rc
   end
@@ -231,25 +227,20 @@ dsl.instance_eval do
     # end
   end
 
-  resource_class :derivation do
-    extends :song
+  resource_class :derivation, extends: :song do
     field :original, type: :song
   end
 
-  resource_class :remix do
-    extends :derivation
+  resource_class :remix, extends: :derivation do
   end
 
-  resource_class :cover do
-    extends :derivation
+  resource_class :cover, extends: :derivation do
   end
 
-  resource_class :instrumental do
-    extends :derivation
+  resource_class :instrumental, extends: :derivation do
   end
 
-  resource_class :arrange do
-    extends :derivation
+  resource_class :arrange, extends: :derivation do
   end
 end
 

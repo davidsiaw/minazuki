@@ -15,8 +15,8 @@ class <%= name.to_s.camelize %> < ApplicationRecord
   <%   end -%>
   <% end -%>
 
-  <% resource.parent_names.each do |parent| %>
-  belongs_to :<%= parent %>, autosave: true
+  <% if resource.parent_name %>
+  belongs_to :<%= resource.parent_name %>, autosave: true
   <% end %>
 
   <% resource.parent_fields.each do |parent, fields| %>
@@ -41,6 +41,7 @@ class <%= name.to_s.camelize %> < ApplicationRecord
 
   def save_<%= parent %>
     self.<%= parent %>.save!
+    self.id = <%= parent %>.id
   end
   <% end -%>
 
