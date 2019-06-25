@@ -15,6 +15,10 @@ class <%= name.to_s.camelize %> < ApplicationRecord
   <%   end -%>
   <% end -%>
 
+  <% resource.collections.each do |collection_name| %>
+  has_many :<%= name %>_<%= collection_name.to_s.pluralize %>
+  <% end %>
+
   <% if resource.parent_name %>
   belongs_to :<%= resource.parent_name %>, autosave: true
   <% end %>

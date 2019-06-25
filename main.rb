@@ -64,30 +64,44 @@ class Generator
 
   private
 
-  def resources
-    @resources ||= prepare_resources
+  def collection_prepared_resources
+    crs = {}
+    @dsl.resources.each do |resource_name, r|
+      r.collections.each do |collection_name, cr|
+        fields = { **cr.fields }
+        fields[resource_name] = { type: resource_name }
+        crs[:"#{resource_name}_#{collection_name}"] =
+          CollectionResourceClass.new(fields, nil, nil)
+      end
+    end
+    crs
   end
 
   def resource_tree
-    Bunny::Tsort.tsort(@dsl.resources.map do |k, r|
+    @resource_tree ||= Bunny::Tsort.tsort(@dsl.resources.map do |k, r|
       [k, r.parent ? [r.parent] : []]
     end.to_h)
   end
 
   def prepare_resources
     result = {}
+
+    # Prepare main resource classes
     resource_tree.each do |arr|
       arr.each do |resourcename|
         next if resourcename.nil?
 
         r = @dsl.resources[resourcename]
         result[resourcename] = PreparedResourceClass.new(
-          r.fields, r.parent, result[r.parent]
+          r.fields, r.parent, result[r.parent], r.collections.keys
         )
-
       end
     end
-    result
+    { **result, **collection_prepared_resources }
+  end
+
+  def resources
+    @resources ||= prepare_resources
   end
 
   def generator_files
@@ -141,12 +155,13 @@ end
 
 # resource used for generation
 class PreparedResourceClass
-  attr_reader :fields, :parent_name, :parent_resource
+  attr_reader :fields, :parent_name, :parent_resource, :collections
 
-  def initialize(fields, parent_name, parent_resource)
+  def initialize(fields, parent_name = nil, parent_resource = nil, collections = [])
     @fields = fields
     @parent_name = parent_name
     @parent_resource = parent_resource
+    @collections = collections
   end
 
   def parent_fields
@@ -167,19 +182,29 @@ class PreparedResourceClass
   end
 end
 
+class CollectionResourceClass < PreparedResourceClass
+end
+
 # resource
 class ResourceClass
-  attr_reader :fields, :parent
+  attr_reader :fields, :parent, :collections
 
   def initialize(parent_class:)
     @fields = {}
     @parent = parent_class
+    @collections = {}
   end
 
   private
 
   def field(name, options = {})
     @fields[name] = options
+  end
+
+  def collection(name, &block)
+    crc = ResourceClass.new(parent_class: nil)
+    crc.instance_eval(&block)
+    @collections[name] = crc
   end
 end
 
@@ -222,9 +247,9 @@ dsl.instance_eval do
     field :length_seconds, type: :integer
     # has_many :artist
 
-    # collection :alt_name do
-    #   field :name, type: :string
-    # end
+    collection :alt_name do
+      field :name, type: :string
+    end
   end
 
   resource_class :derivation, extends: :song do
