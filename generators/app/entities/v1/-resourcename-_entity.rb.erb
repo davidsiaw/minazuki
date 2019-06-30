@@ -9,24 +9,23 @@ module V1
     <%   if %i[string integer].include? field[:type] %>
     expose :<%= field_name %>
     <%   else %>
-    <%     next if resource.is_a? CollectionResourceClass %>
     expose :<%= field_name %>, using: <%= field[:type].to_s.camelize %>Entity
     <%   end %>
     <% end %>
 
     <% resource.collections.each do |collection_name| %>
-    expose :<%= name %>_<%= collection_name.to_s.pluralize %>, using: <%= name.to_s.camelize %><%= collection_name.to_s.camelize %>Entity, documentation: { is_array: true }
+    expose :<%= collection_name.to_s.pluralize %>, using: <%= name.to_s.camelize %><%= collection_name.to_s.camelize %>Entity, documentation: { is_array: true }
     <% end %>
 
     <% resource.parent_fields.each do |parent, fields| %>
     # Inherited from <%= parent %>
-    <% fields.each do |field_name, field| %>
-    <%   if %i[string integer].include? field[:type] %>
+      <% fields.each do |field_name, field| %>
+      <%   if %i[string integer].include? field[:type] %>
     expose :<%= field_name %>
-    <%   else %>
+      <%   else %>
     expose :<%= field_name %>, using: <%= field[:type].to_s.camelize %>Entity
-    <%   end %>
-    <% end -%>
+      <%   end %>
+      <% end -%>
     <% end -%>
 
     expose :updated_at

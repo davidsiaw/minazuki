@@ -15,8 +15,13 @@ class <%= name.to_s.camelize %> < ApplicationRecord
   <%   end -%>
   <% end -%>
 
+  <% if resource.owner %>
+  belongs_to :<%= resource.owner %>
+  validates :<%= resource.owner %>, presence: true
+  <% end %>
+
   <% resource.collections.each do |collection_name| %>
-  has_many :<%= name %>_<%= collection_name.to_s.pluralize %>
+  has_many :<%= collection_name.to_s.pluralize %>, class_name: '<%= "#{name}_#{collection_name}".camelize %>', inverse_of: :<%= name %>
   <% end %>
 
   <% if resource.parent_name %>

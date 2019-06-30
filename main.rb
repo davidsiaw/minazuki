@@ -32,12 +32,12 @@ class ResourceGenerator
   end
 
   def id_of(index)
-    date = Time.now
-    year = date.year
-    month = date.month.to_s.rjust(2, '0')
-    day = date.day.to_s.rjust(2, '0')
+    # date = Time.now
+    # year = date.year
+    # month = date.month.to_s.rjust(2, '0')
+    # day = date.day.to_s.rjust(2, '0')
     count = index.to_s.rjust(6, '0')
-    "#{year}#{month}#{day}#{count}"
+    "20342034#{count}"
   end
 
   def filename
@@ -50,6 +50,53 @@ class ResourceGenerator
   end
 end
 
+# Expands collections to a nominal class structure
+class ResourceExpander
+  attr_reader :expanded, :deptree, :owners
+
+  def initialize(resources)
+    @resources = resources
+    @expanded = {}
+    @deptree = {}
+    @owners = {}
+    expand!
+  end
+
+  private
+
+  def expand!
+    cur_collections = @resources.dup
+    # Expand collections
+    loop do
+      collections = blow_up(cur_collections)
+      break if collections.count.zero?
+
+      cur_collections = collections
+    end
+  end
+
+  def blow_up(cur_collections)
+    collections = {}
+    cur_collections.each do |k, r|
+      expanded[k] = r
+      add_dependencies(k, r)
+      r.collections.each do |ck, cr|
+        collections[:"#{k}_#{ck}"] = cr
+      end
+    end
+    collections
+  end
+
+  def add_dependencies(resource_name, resource)
+    @deptree[resource_name] = [] unless @deptree.key? resource_name
+    @deptree[resource_name] << resource.parent if resource.parent
+    resource.collections.each do |ck, _|
+      @owners[:"#{resource_name}_#{ck}"] = resource_name
+      @deptree[:"#{resource_name}_#{ck}"] = [resource_name]
+    end
+  end
+end
+
 # generator
 class Generator
   def initialize(dsl)
@@ -57,47 +104,51 @@ class Generator
   end
 
   def generate
-    #prepare_program!
+    prepare_program!
     generate_resources!
     generate_globals!
   end
 
   private
 
-  def collection_prepared_resources
-    crs = {}
-    @dsl.resources.each do |resource_name, r|
-      r.collections.each do |collection_name, cr|
-        fields = { **cr.fields }
-        fields[resource_name] = { type: resource_name }
-        crs[:"#{resource_name}_#{collection_name}"] =
-          CollectionResourceClass.new(fields, nil, nil)
-      end
-    end
-    crs
+  def expander
+    @expander ||= ResourceExpander.new(@dsl.resources)
   end
 
-  def resource_tree
-    @resource_tree ||= Bunny::Tsort.tsort(@dsl.resources.map do |k, r|
-      [k, r.parent ? [r.parent] : []]
-    end.to_h)
+  # Expand collections
+  def expanded_resources
+    expander.expanded
+  end
+
+  def resource_deptree
+    expander.deptree
+  end
+
+  def resources_in_order
+    @resources_in_order ||= Bunny::Tsort.tsort(resource_deptree)
   end
 
   def prepare_resources
     result = {}
 
     # Prepare main resource classes
-    resource_tree.each do |arr|
+    resources_in_order.each do |arr|
       arr.each do |resourcename|
-        next if resourcename.nil?
-
-        r = @dsl.resources[resourcename]
-        result[resourcename] = PreparedResourceClass.new(
-          r.fields, r.parent, result[r.parent], r.collections.keys
-        )
+        r = expanded_resources[resourcename]
+        result[resourcename] = make_prepared_resource(resourcename, r, result)
       end
     end
-    { **result, **collection_prepared_resources }
+    { **result }
+  end
+
+  def make_prepared_resource(resource_name, resource, result)
+    PreparedResourceClass.new(
+      resource.fields,
+      resource.parent,
+      result[resource.parent],
+      resource.collections.keys,
+      expander.owners[resource_name]
+    )
   end
 
   def resources
@@ -120,12 +171,17 @@ class Generator
     resource_files.each do |file|
       template = File.read(file)
       resources.each_with_index do |(name, resource), index|
-        generator = Erubis::Eruby.new(template, filename: file)
-        rg = ResourceGenerator.new(file, name, resource, index)
-        FileUtils.mkdir_p File.dirname(rg.filename)
-        File.write(rg.filename, generator.result(rg.send(:binding)))
+        generate_file!(template, file, name, resource, index)
       end
     end
+  end
+
+  def generate_file!(template, file, name, resource, index)
+    generator = Erubis::Eruby.new(template, filename: file)
+    rg = ResourceGenerator.new(file, name, resource, index)
+    FileUtils.mkdir_p File.dirname(rg.filename)
+    result = generator.result(rg.send(:binding)).gsub(/\n+/, "\n")
+    File.write(rg.filename, result)
   end
 
   def generate_globals!
@@ -155,13 +211,22 @@ end
 
 # resource used for generation
 class PreparedResourceClass
-  attr_reader :fields, :parent_name, :parent_resource, :collections
+  attr_reader :fields,
+              :parent_name,
+              :parent_resource,
+              :collections,
+              :owner
 
-  def initialize(fields, parent_name = nil, parent_resource = nil, collections = [])
+  def initialize(fields,
+                 parent_name = nil,
+                 parent_resource = nil,
+                 collections = [],
+                 owner = nil)
     @fields = fields
     @parent_name = parent_name
     @parent_resource = parent_resource
     @collections = collections
+    @owner = owner
   end
 
   def parent_fields
@@ -180,9 +245,6 @@ class PreparedResourceClass
     end
     result
   end
-end
-
-class CollectionResourceClass < PreparedResourceClass
 end
 
 # resource
@@ -247,8 +309,18 @@ dsl.instance_eval do
     field :length_seconds, type: :integer
     # has_many :artist
 
-    collection :alt_name do
-      field :name, type: :string
+    collection :lyric do
+      field :timestamp_seconds, type: :integer
+
+      collection :line do
+        field :content, type: :string
+        field :lang_code, type: :string
+
+        collection :annotation do
+          field :content, type: :string
+          field :tag, type: :string
+        end
+      end
     end
   end
 
