@@ -15,14 +15,68 @@ module ObjectApiService
   def describe!
     r = resource_meta
     before do
-      @item = r[:name].to_s.camelize.constantize.find_by(id: params[:"#{r[:name]}_id"])
+      @item = r[:name].to_s.camelize.constantize.extant.find_by(id: params[:"#{r[:name]}_id"])
       error!({ error: :not_found }, 404) if @item.nil?
     end
 
-    desc "Get a #{r[:name].to_s.humanize}"
-    get do
-      present @item, with: ObjectPresenter.new(r)
+    describe_get!(resource_meta)
+    describe_put!(resource_meta)
+    describe_delete!(resource_meta)
+
+    resource_meta[:fields].each do |field_name, field|
+      describe_field!(resource_meta, field_name, field)
     end
   end
 
+  def describe_get!(resource_meta)
+    desc "Get a #{resource_meta[:name].to_s.humanize}"
+    get do
+      present @item, with: ObjectPresenter.new(resource_meta)
+    end
+  end
+
+  def describe_put!(resource_meta)
+    desc "Modify a #{resource_meta[:name].to_s.humanize}"
+    params do
+      resource_meta[:fields].each do |field_name, field|
+        if %i[string integer boolean].include?(field[:type])
+          requires field_name, type: field[:type].to_s.camelize.constantize
+        else
+          requires "#{field_name}_id", type: String
+        end
+      end
+    end
+    put do
+      resource_meta[:fields].each do |field_name, field|
+        if %i[string integer boolean].include?(field[:type])
+          @item.send(:"#{field_name}=", params[field_name])
+        else
+          @item.send(:"#{field_name}_id=", params[:"#{field_name}_id"])
+        end
+      end
+      @item.save!
+      present @item, with: ObjectPresenter.new(resource_meta)
+    end
+  end
+
+  def describe_delete!(resource_meta)
+    desc "Delete the #{resource_meta[:name].to_s.humanize}"
+    delete do
+      @item.delete
+      present @item, with: ObjectPresenter.new(resource_meta)
+    end
+  end
+
+  def describe_field!(resource_meta, field_name, field)
+    resource field_name do
+      desc "Get the #{field_name} of the #{resource_meta[:name].to_s.humanize}"
+      get do
+        if %i[string integer boolean].include?(field[:type])
+          @item.send(field_name)
+        else
+          @item.send(field_name) # TODO. presenter for the particular field.
+        end
+      end
+    end
+  end
 end

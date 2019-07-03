@@ -27,12 +27,13 @@ module CollectionApiService
   def describe!
     describe_get(resource_meta)
     describe_post(resource_meta)
+    describe_count(resource_meta)
     describe_object(resource_meta)
   end
 
   def describe_get(resource_meta)
     rclass = resource_meta[:name].to_s.camelize.constantize
-    columns = %i[id updated_at created_at] + resource_meta[:fields].keys
+    columns = %i[id updated_at] + resource_meta[:fields].keys
     desc "Get #{resource_meta[:name].to_s.camelize.pluralize}"
     params do
       optional :page, type: Integer
@@ -52,12 +53,21 @@ module CollectionApiService
     end
   end
 
+  def describe_count(resource_meta)
+    desc "Number of #{resource_meta[:name].to_s.camelize.pluralize}"
+    get '_count' do
+      {
+        count: resource_meta[:name].to_s.camelize.constantize.extant.count
+      }
+    end
+  end
+
   def describe_post(resource_meta)
     rclass = resource_meta[:name].to_s.camelize.constantize
     desc "Create a new #{resource_meta[:name].to_s.camelize.pluralize}"
     params do
       resource_meta[:fields].each do |field_name, field|
-        if %i[string integer boolean].include? (field[:type])
+        if %i[string integer boolean].include?(field[:type])
           requires field_name, type: field[:type].to_s.camelize.constantize
         else
           requires "#{field_name}_id", type: String

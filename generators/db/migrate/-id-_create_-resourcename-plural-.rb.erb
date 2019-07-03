@@ -17,6 +17,9 @@ class Create<%= name.to_s.pluralize.camelize %> < ActiveRecord::Migration[5.2]
       t.belongs_to :<%= resource.owner %>, index: true, null: false, foreign_key: true
       <% end %>
       t.datetime :updated_at
+      <% unless resource.parent_name %>
+      t.datetime :deleted_at
+      <% end %>
     end
   end
 end

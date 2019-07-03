@@ -54,13 +54,29 @@ class <%= name.to_s.camelize %> < ApplicationRecord
   end
   <% end -%>
 
-  scope :ordered_by, ->(attrib, direction) do
+  scope :ordered_by, lambda { |attrib, direction|
     <% resource.parent_fields.each do |parent, fields| %>
     if %i[<%= fields.keys.select { |k| basic? fields[k][:type] }.join(' ') %>].include? attrib
       return joins(:<%= parent %>).merge(<%= parent.to_s.camelize %>.ordered_by(attrib, direction))
     end
     <%- end -%>
 
-    order(attrib.to_sym => direction.to_sym)
+    order(attrib.to_sym => direction.to_sym).extant
+  }
+
+  scope :extant, lambda {
+    <% if resource.parent_name %>
+    joins(:<%= resource.parent_name %>).merge(<%= resource.parent_name.to_s.camelize %>.extant)
+    <% else %>
+    where(deleted_at: nil)
+    <% end %>
+  }
+
+  def delete
+    <% if resource.parent_name %>
+    <%= resource.parent_name.to_s.camelize %>.find(self.id).delete
+    <% else %>
+    update(deleted_at: Time.current)
+    <% end %>
   end
 end
