@@ -15,7 +15,7 @@ module ObjectApiService
   def describe!
     r = resource_meta
     before do
-      @item = r[:name].to_s.camelize.constantize.extant.find_by(id: params[:"#{r[:name]}_id"])
+      @item = r[:name].to_s.camelize.constantize.find_by(id: params[:"#{r[:name]}_id"])
       error!({ error: :not_found }, 404) if @item.nil?
     end
 
@@ -62,7 +62,7 @@ module ObjectApiService
   def describe_delete!(resource_meta)
     desc "Delete the #{resource_meta[:name].to_s.humanize}"
     delete do
-      @item.delete
+      @item.destroy!
       present @item, with: ObjectPresenter.new(resource_meta)
     end
   end

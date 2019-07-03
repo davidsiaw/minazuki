@@ -18,13 +18,9 @@ class ObjectPresenter
     @resource[:fields].each do |field_name, field|
       if %i[string integer boolean].include? field[:type]
         result[field_name] = relation.send(field_name)
-      elsif options[:env]['REQUEST_METHOD'] == 'DELETE'
-        result[field_name] = {
-          _url: represent_url(field_name, relation.send(:"#{field_name}_id"), options)
-        }
       else
         result[field_name] = {
-          _url: "#{result[:_url]}/#{field_name}"
+          _url: represent_url(field[:type], relation.send(:"#{field_name}_id"), options)
         }
       end
     end

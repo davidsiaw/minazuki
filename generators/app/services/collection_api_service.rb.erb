@@ -57,7 +57,7 @@ module CollectionApiService
     desc "Number of #{resource_meta[:name].to_s.camelize.pluralize}"
     get '_count' do
       {
-        count: resource_meta[:name].to_s.camelize.constantize.extant.count
+        count: resource_meta[:name].to_s.camelize.constantize.count
       }
     end
   end
@@ -75,8 +75,12 @@ module CollectionApiService
       end
     end
     post do
-      item = rclass.create!(params)
-      present item, with: ObjectPresenter.new(resource_meta)
+      begin
+        item = rclass.create!(params)
+        present item, with: ObjectPresenter.new(resource_meta)
+      rescue ActiveRecord::RecordInvalid
+        error!({ error: :invalid_value }, 400)
+      end
     end
   end
 

@@ -61,22 +61,6 @@ class <%= name.to_s.camelize %> < ApplicationRecord
     end
     <%- end -%>
 
-    order(attrib.to_sym => direction.to_sym).extant
+    order(attrib.to_sym => direction.to_sym)
   }
-
-  scope :extant, lambda {
-    <% if resource.parent_name %>
-    joins(:<%= resource.parent_name %>).merge(<%= resource.parent_name.to_s.camelize %>.extant)
-    <% else %>
-    where(deleted_at: nil)
-    <% end %>
-  }
-
-  def delete
-    <% if resource.parent_name %>
-    <%= resource.parent_name.to_s.camelize %>.find(self.id).delete
-    <% else %>
-    update(deleted_at: Time.current)
-    <% end %>
-  end
 end
