@@ -11,7 +11,7 @@ class MainApi < Grape::API
   class V1Api < Grape::API
     version 'v1', using: :path
     <% resources.each do |resource_name, resource| %>
-    resource :<%= resource_name %> do
+    resource :<%= resource_name.to_s.pluralize %> do
       mount V1::<%= resource_name.to_s.pluralize.camelize %>Api
     end
     <% end %>

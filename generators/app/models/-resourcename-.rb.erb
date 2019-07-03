@@ -9,7 +9,7 @@ class <%= name.to_s.camelize %> < ApplicationRecord
   has_paper_trail
 
   <% resource.fields.each do |field_name, field| %>
-  <%   unless %i[string integer].include? field[:type] %>
+  <%   unless basic? field[:type] %>
   ulid :<%= field_name %>_id
   belongs_to :<%= field_name %>, class_name: '<%= field[:type].to_s.camelize %>', foreign_key: :<%= field_name %>_id
   <%   end -%>
@@ -33,7 +33,7 @@ class <%= name.to_s.camelize %> < ApplicationRecord
   <%- fields.each do |field_name, field| -%>
     :<%= field_name %>,
     :<%= field_name %>=,
-    <% unless %i[string integer].include? field[:type] %>
+    <% unless basic? field[:type] %>
     :<%= field_name %>_id,
     :<%= field_name %>_id=,
     <% end %>
@@ -56,7 +56,7 @@ class <%= name.to_s.camelize %> < ApplicationRecord
 
   scope :ordered_by, ->(attrib, direction) do
     <% resource.parent_fields.each do |parent, fields| %>
-    if %i[<%= fields.keys.select { |k| %i[string integer].include?(fields[k][:type]) }.join(' ') %>].include? attrib
+    if %i[<%= fields.keys.select { |k| basic? fields[k][:type] }.join(' ') %>].include? attrib
       return joins(:<%= parent %>).merge(<%= parent.to_s.camelize %>.ordered_by(attrib, direction))
     end
     <%- end -%>

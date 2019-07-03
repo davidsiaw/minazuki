@@ -4,7 +4,7 @@ class Create<%= name.to_s.pluralize.camelize %> < ActiveRecord::Migration[5.2]
   def change
     create_table :<%= name.to_s.pluralize %>, id: :uuid do |t|
       <% resource.fields.each do |field_name, field| %>
-      <%   if %i[string integer].include? field[:type] %>
+      <%   if basic? field[:type] %>
       t.<%= field[:type] %> :<%= field_name %>
       <%   else %>
       t.references :<%= field_name %>, index: true, null: false, foreign_key: {to_table: :<%= field[:type].to_s.pluralize %>}

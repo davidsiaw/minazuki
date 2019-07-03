@@ -1,0 +1,18 @@
+# frozen_string_literal: true
+
+# Presents a collection as an API result
+class CollectionPresenter
+  def initialize(resource)
+    @resource = resource
+  end
+
+  def represent(relation, options)
+    presenter = ObjectPresenter.new(@resource)
+    results = relation.map do |r|
+      presenter.represent(r, options)
+    end
+    {
+      @resource[:name].to_s.pluralize => results
+    }
+  end
+end

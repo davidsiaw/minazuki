@@ -1,0 +1,85 @@
+# frozen_string_literal: true
+
+module CollectionApiService
+  def resource_meta
+    @resource_meta ||= {
+      fields: {},
+      collections: {}
+    }
+  end
+
+  def resource_name(name)
+    resource_meta[:name] = name
+  end
+
+  def field(name, type)
+    resource_meta[:fields][name] = { type: type }
+  end
+
+  def collection(name)
+    resource_meta[:collections][name] = { type: name }
+  end
+
+  def sortable_types
+    %i[uuid string integer boolean]
+  end
+
+  def describe!
+    describe_get(resource_meta)
+    describe_post(resource_meta)
+    describe_object(resource_meta)
+  end
+
+  def describe_get(resource_meta)
+    rclass = resource_meta[:name].to_s.camelize.constantize
+    columns = %i[id updated_at created_at] + resource_meta[:fields].keys
+    desc "Get #{resource_meta[:name].to_s.camelize.pluralize}"
+    params do
+      optional :page, type: Integer
+      optional :count, type: Integer
+      optional :sort, type: Symbol, values: columns, default: :id
+      optional :order, type: Symbol, values: %i[asc desc], default: :asc
+    end
+    get do
+      count = params[:count] || 20
+      page = params[:page] || 1
+      page = [1, page].max
+      count = [1, count].max
+      count = [count, 50].min
+      result = rclass.limit(count).offset((page - 1) * count)
+      result = result.ordered_by(params[:sort], params[:order])
+      present result, with: CollectionPresenter.new(resource_meta)
+    end
+  end
+
+  def describe_post(resource_meta)
+    rclass = resource_meta[:name].to_s.camelize.constantize
+    desc "Create a new #{resource_meta[:name].to_s.camelize.pluralize}"
+    params do
+      resource_meta[:fields].each do |field_name, field|
+        if %i[string integer boolean].include? (field[:type])
+          requires field_name, type: field[:type].to_s.camelize.constantize
+        else
+          requires "#{field_name}_id", type: String
+        end
+      end
+    end
+    post do
+      item = rclass.create!(params)
+      present item, with: ObjectPresenter.new(resource_meta)
+    end
+  end
+
+  def describe_object(the_resource_meta)
+    params do
+      requires :"#{the_resource_meta[:name]}_id", type: String, desc: "ID of #{the_resource_meta[:name]}"
+    end
+    route_param :"#{the_resource_meta[:name]}_id" do
+      extend ObjectApiService
+
+      self.resource_meta = the_resource_meta
+
+      describe!
+    end
+  end
+end

@@ -1,0 +1,27 @@
+# frozen_string_literal: true
+
+# Presents an object as an API result
+class ObjectPresenter
+  def initialize(resource)
+    @resource = resource
+  end
+
+  def represent_url(name, value, options)
+    "#{options[:env]['rack.url_scheme']}://#{options[:env]['SERVER_NAME']}/api/v1/#{name.to_s.pluralize}/#{value.downcase}"
+  end
+
+  def represent(relation, options)
+    result = {}
+    result[:_url] = represent_url(@resource[:name], relation.id, options)
+    @resource[:fields].each do |field_name, field|
+      if %i[string integer boolean].include? field[:type]
+        result[field_name] = relation.send(field_name)
+      else
+        result[field_name] = {
+          _url: "#{result[:_url]}/#{field_name}"
+        }
+      end
+    end
+    result
+  end
+end

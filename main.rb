@@ -104,9 +104,17 @@ class Generator
   end
 
   def generate
-    prepare_program!
+    #prepare_program!
     generate_resources!
     generate_globals!
+  end
+
+  def basic_types
+    %i[string integer boolean]
+  end
+
+  def basic?(type)
+    %i[string integer].include? type
   end
 
   private
@@ -260,6 +268,8 @@ class ResourceClass
   private
 
   def field(name, options = {})
+    raise 'fields cannot start with underscore' if name.to_s.start_with?('_')
+
     @fields[name] = options
   end
 

@@ -1,0 +1,28 @@
+# frozen_string_literal: true
+
+module ObjectApiService
+  def resource_meta
+    @resource_meta ||= {
+      fields: {},
+      collections: {}
+    }
+  end
+
+  def resource_meta=(value)
+    @resource_meta = value
+  end
+
+  def describe!
+    r = resource_meta
+    before do
+      @item = r[:name].to_s.camelize.constantize.find_by(id: params[:"#{r[:name]}_id"])
+      error!({ error: :not_found }, 404) if @item.nil?
+    end
+
+    desc "Get a #{r[:name].to_s.humanize}"
+    get do
+      present @item, with: ObjectPresenter.new(r)
+    end
+  end
+
+end
