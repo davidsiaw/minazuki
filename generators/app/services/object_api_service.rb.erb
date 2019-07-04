@@ -69,7 +69,7 @@ module ObjectApiService
 
   def describe_field!(resource_meta, field_name, field)
     resource field_name do
-      desc "Get the #{field_name} of the #{resource_meta[:name].to_s.humanize}"
+      desc "Get the #{field_name.to_s.humanize} of the #{resource_meta[:name].to_s.humanize}"
       get do
         if %i[string integer boolean].include?(field[:type])
           @item.send(field_name)
