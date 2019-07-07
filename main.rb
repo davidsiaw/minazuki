@@ -207,15 +207,15 @@ class Generator
   end
 
   def prepare_program!
+    repo = ENV['REPO'] || 'git@github.com:davidsiaw/rails-zen'
     `rm -rf rails-zen`
-    `git clone git@github.com:davidsiaw/rails-zen`
+    `git clone #{repo}`
     files = Dir['rails-zen/**/*']
     files.each do |file|
       next unless File.file?(file)
 
       content = File.read(file)
-      content.gsub!('rails_zen', 'meowery')
-      content.gsub!('RailsZen', 'Meowery')
+      content.gsub!('rails_zen', 'meowery').gsub!('RailsZen', 'Meowery')
       File.write(file, content)
     end
   end
