@@ -1,0 +1,41 @@
+# frozen_string_literal: true
+
+# Class that describes the semantics of a <%= name %>
+class <%= name.to_s.camelize %>Meta
+  def name
+    :<%= name %>
+  end
+
+  def fields
+    if @fields.nil?
+      @fields = {}
+      <% resource.fields.each do |field_name, field| %>
+      @fields[:<%= field_name %>] = { type: :<%= field[:type] %> }
+      <% end %>  
+      <% resource.parent_fields.each do |parent, fields| %>
+      # Inherited from <%= parent %>
+      <%   fields.each do |field_name, field| %>
+      @fields[:<%= field_name %>] = { type: :<%= field[:type] %> }
+      <%   end %>
+      <% end %>  
+      <% if resource.owner %>
+      @fields[:<%= resource.owner %>] = { type: :<%= resource.owner %> }
+      <% end %>
+    end
+    @fields
+  end
+
+  def collections
+    <% if resource.collections.length.zero? %>
+    []
+    <% else %>
+    if @collections.nil?
+      @collections = []
+      <% resource.collections.each do |collection_name| %>
+      @collections << :<%= collection_name %>
+      <% end %>
+    end
+    @collections
+    <% end %>
+  end
+end

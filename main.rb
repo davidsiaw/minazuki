@@ -192,7 +192,7 @@ class Generator
     generator = Erubis::Eruby.new(template, filename: file)
     rg = ResourceGenerator.new(file, name, resource, index)
     FileUtils.mkdir_p File.dirname(rg.filename)
-    result = generator.result(rg.send(:binding))
+    result = generator.result(rg.send(:binding)).gsub(/\n\n+/, "\n\n")
     File.write(rg.filename, result)
   end
 

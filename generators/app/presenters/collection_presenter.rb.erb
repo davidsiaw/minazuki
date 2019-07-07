@@ -2,17 +2,17 @@
 
 # Presents a collection as an API result
 class CollectionPresenter
-  def initialize(resource)
-    @resource = resource
+  def initialize(resource_meta)
+    @resource_meta = resource_meta
   end
 
   def represent(relation, options)
-    presenter = ObjectPresenter.new(@resource)
+    presenter = ObjectPresenter.new(@resource_meta)
     results = relation.map do |r|
       presenter.represent(r, options)
     end
     {
-      @resource[:name].to_s.pluralize => results
+      @resource_meta.name.to_s.pluralize => results
     }
   end
 end

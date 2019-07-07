@@ -9,6 +9,9 @@ RSpec.describe <%= name.to_s.camelize %>, type: :model do
   it { should validate_presence_of(:<%= field_name %>) }
   <%   end -%>
   <% end -%>
+  <% if resource.owner %>
+  it { should validate_presence_of(:<%= resource.owner %>) }
+  <% end %>
   <% if resource.parent_name %>
   it { should validate_presence_of(:<%= resource.parent_name %>) }
   <% end %>

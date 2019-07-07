@@ -4,24 +4,6 @@ module V1
   # Endpoint to access <%= name.to_s.pluralize.humanize %>
   class <%= name.to_s.pluralize.camelize %>Api < Grape::API
     extend CollectionApiService
-
-    resource_name :<%= name %>
-
-    <% resource.fields.each do |field_name, field| %>
-    field :<%= field_name %>, :<%= field[:type] %>
-    <% end %>
-
-    <% resource.parent_fields.each do |parent, fields| %>
-    # Inherited from <%= parent %>
-    <% fields.each do |field_name, field| %>
-    field :<%= field_name %>, :<%= field[:type] %>
-    <% end %>
-    <% end %>
-
-    <% resource.collections.each do |collection_name| %>
-    collection :<%= collection_name %>
-    <% end %>
-
-    describe!
+    describe(<%= name.to_s.camelize %>Meta.new)
   end
 end

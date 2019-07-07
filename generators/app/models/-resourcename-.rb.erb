@@ -17,6 +17,7 @@ class <%= name.to_s.camelize %> < ApplicationRecord
   <% end -%>
 
   <% if resource.owner %>
+  ulid :<%= resource.owner %>_id
   belongs_to :<%= resource.owner %>
   validates :<%= resource.owner %>, presence: true
   <% end %>
@@ -64,7 +65,6 @@ class <%= name.to_s.camelize %> < ApplicationRecord
       return joins(:<%= parent %>).merge(<%= parent.to_s.camelize %>.ordered_by(attrib, direction))
     end
     <%- end -%>
-
     order(attrib.to_sym => direction.to_sym)
   }
 end

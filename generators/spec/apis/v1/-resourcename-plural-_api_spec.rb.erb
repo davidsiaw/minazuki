@@ -1,0 +1,50 @@
+# frozen_string_literal: true
+
+require 'rails_helper'
+
+RSpec.describe V1::<%= name.to_s.pluralize.camelize %>Api, type: :request do
+  context 'when there are no items' do
+    it 'returns empty set of <%= name.to_s.pluralize %>' do
+      get '/api/v1/<%= name.to_s.pluralize %>'
+      expect(response.body).to eq({ <%= name.to_s.pluralize %>: [] }.to_json)
+    end
+
+    it 'returns count of zero' do
+      get '/api/v1/<%= name.to_s.pluralize %>/_count'
+      expect(response.body).to eq({ count: 0 }.to_json)
+    end
+
+    it 'can create a new <%= name %>' do
+      params = {}
+      <% resource.parent_fields.each do |parent, fields| %>
+      <%   fields.each do |field_name, field| -%>
+      <%     if field[:type] == :string %>
+      params[:<%= field_name %>] = 'asd'
+      <%     elsif field[:type] == :boolean %>
+      params[:<%= field_name %>] = 'true'
+      <%     elsif field[:type] == :integer %>
+      params[:<%= field_name %>] = '123'
+      <%     else %>
+      params[:<%= field_name %>_id] = (create :<%= field[:type] %>).id
+      <%     end -%>
+      <%   end -%>
+      <% end -%>
+      <% resource.fields.each do |field_name, field| %>
+      <%   if field[:type] == :string %>
+      params[:<%= field_name %>] = 'asd'
+      <%   elsif field[:type] == :boolean %>
+      params[:<%= field_name %>] = 'true'
+      <%   elsif field[:type] == :integer %>
+      params[:<%= field_name %>] = '123'
+      <%   else %>
+      params[:<%= field_name %>_id] = (create :<%= field[:type] %>).id
+      <%   end -%>
+      <% if resource.owner %>
+      params[:<%= resource.owner %>_id] = (create :<%= resource.owner %>).id
+      <% end %>
+      <% end -%>
+      post '/api/v1/<%= name.to_s.pluralize %>', params: params
+      expect(<%= name.to_s.camelize %>.last).not_to be nil
+    end
+  end
+end

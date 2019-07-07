@@ -1,30 +1,8 @@
 # frozen_string_literal: true
 
+# Service to describe an API based on the model metadata
 module CollectionApiService
-  def resource_meta
-    @resource_meta ||= {
-      fields: {},
-      collections: {}
-    }
-  end
-
-  def resource_name(name)
-    resource_meta[:name] = name
-  end
-
-  def field(name, type)
-    resource_meta[:fields][name] = { type: type }
-  end
-
-  def collection(name)
-    resource_meta[:collections][name] = { type: name }
-  end
-
-  def sortable_types
-    %i[uuid string integer boolean]
-  end
-
-  def describe!
+  def describe(resource_meta)
     describe_get(resource_meta)
     describe_post(resource_meta)
     describe_count(resource_meta)
@@ -32,9 +10,9 @@ module CollectionApiService
   end
 
   def describe_get(resource_meta)
-    rclass = resource_meta[:name].to_s.camelize.constantize
-    columns = %i[id updated_at] + resource_meta[:fields].keys
-    desc "Get #{resource_meta[:name].to_s.camelize.pluralize}"
+    rclass = resource_meta.name.to_s.camelize.constantize
+    columns = %i[id updated_at] + resource_meta.fields.keys
+    desc "Get #{resource_meta.name.to_s.camelize.pluralize}"
     params do
       optional :page, type: Integer
       optional :count, type: Integer
@@ -54,19 +32,19 @@ module CollectionApiService
   end
 
   def describe_count(resource_meta)
-    desc "Number of #{resource_meta[:name].to_s.camelize.pluralize}"
+    desc "Number of #{resource_meta.name.to_s.camelize.pluralize}"
     get '_count' do
       {
-        count: resource_meta[:name].to_s.camelize.constantize.count
+        count: resource_meta.name.to_s.camelize.constantize.count
       }
     end
   end
 
   def describe_post(resource_meta)
-    rclass = resource_meta[:name].to_s.camelize.constantize
-    desc "Create a new #{resource_meta[:name].to_s.camelize.pluralize}"
+    rclass = resource_meta.name.to_s.camelize.constantize
+    desc "Create a new #{resource_meta.name.to_s.camelize.pluralize}"
     params do
-      resource_meta[:fields].each do |field_name, field|
+      resource_meta.fields.each do |field_name, field|
         if %i[string integer boolean].include?(field[:type])
           requires field_name, type: field[:type].to_s.camelize.constantize
         else
@@ -84,16 +62,15 @@ module CollectionApiService
     end
   end
 
-  def describe_object(the_resource_meta)
+  def describe_object(resource_meta)
     params do
-      requires :"#{the_resource_meta[:name]}_id", type: String, desc: "ID of #{the_resource_meta[:name]}"
+      requires :"#{resource_meta.name}_id",
+               type: String,
+               desc: "ID of the #{resource_meta.name}"
     end
-    route_param :"#{the_resource_meta[:name]}_id" do
+    route_param :"#{resource_meta.name}_id" do
       extend ObjectApiService
-
-      self.resource_meta = the_resource_meta
-
-      describe!
+      describe(resource_meta)
     end
   end
 end
