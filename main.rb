@@ -114,6 +114,10 @@ class Generator
   end
 
   def basic?(type)
+    basic_types.include? type
+  end
+
+  def indexable?(type)
     %i[string integer].include? type
   end
 
@@ -188,7 +192,7 @@ class Generator
     generator = Erubis::Eruby.new(template, filename: file)
     rg = ResourceGenerator.new(file, name, resource, index)
     FileUtils.mkdir_p File.dirname(rg.filename)
-    result = generator.result(rg.send(:binding)).gsub(/\n+/, "\n")
+    result = generator.result(rg.send(:binding))
     File.write(rg.filename, result)
   end
 

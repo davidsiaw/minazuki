@@ -1,0 +1,15 @@
+# frozen_string_literal: true
+
+require 'rails_helper'
+
+RSpec.describe <%= name.to_s.camelize %>, type: :model do
+  subject { create :<%= name %> }
+  <% resource.fields.each do |field_name, field| %>
+  <%   unless basic? field[:type] %>
+  it { should validate_presence_of(:<%= field_name %>) }
+  <%   end -%>
+  <% end -%>
+  <% if resource.parent_name %>
+  it { should validate_presence_of(:<%= resource.parent_name %>) }
+  <% end %>
+end

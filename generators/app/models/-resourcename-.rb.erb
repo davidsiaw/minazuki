@@ -12,6 +12,7 @@ class <%= name.to_s.camelize %> < ApplicationRecord
   <%   unless basic? field[:type] %>
   ulid :<%= field_name %>_id
   belongs_to :<%= field_name %>, class_name: '<%= field[:type].to_s.camelize %>', foreign_key: :<%= field_name %>_id
+  validates :<%= field_name %>, presence: true
   <%   end -%>
   <% end -%>
 
@@ -26,6 +27,7 @@ class <%= name.to_s.camelize %> < ApplicationRecord
 
   <% if resource.parent_name %>
   belongs_to :<%= resource.parent_name %>, autosave: true
+  validates :<%= resource.parent_name %>, presence: true
   <% end %>
 
   <% resource.parent_fields.each do |parent, fields| %>
@@ -49,6 +51,8 @@ class <%= name.to_s.camelize %> < ApplicationRecord
   end
 
   def save_<%= parent %>
+    return if !<%= parent %>
+    
     self.<%= parent %>.save!
     self.id = <%= parent %>.id
   end

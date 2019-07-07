@@ -2,5 +2,35 @@
 
 FactoryBot.define do
   factory :<%= name %> do
+    <% resource.fields.each do |field_name, field| %>
+    <%   if field[:type] == :string %>
+    <%= field_name %> { 'abcde' }
+    <%   elsif field[:type] == :integer %>
+    <%= field_name %> { 123 }
+    <%   elsif field[:type] == :boolean %>
+    <%= field_name %> { true }
+    <%   else %>
+    <%= field_name %> { create :<%= field[:type] %> }
+    <%   end -%>
+    <% end -%>
+    <% resource.parent_fields.each do |parent, fields| %>
+    <%   fields.each do |field_name, field| -%>
+    <%     if field[:type] == :string %>
+    <%=      field_name %> { 'abcde' }
+    <%     elsif field[:type] == :integer %>
+    <%=      field_name %> { 123 }
+    <%     elsif field[:type] == :boolean %>
+    <%=      field_name %> { true }
+    <%     else %>
+    <%=      field_name %> { create :<%= field[:type] %> }
+    <%     end -%>
+    <%   end %>
+    <% end -%>
+    <% if resource.parent_name %>
+    <%= resource.parent_name %>
+    <% end -%>
+    <% if resource.owner %>
+    <%= resource.owner %>
+    <% end -%>
   end
 end
