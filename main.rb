@@ -104,7 +104,7 @@ class Generator
   end
 
   def generate
-    #prepare_program!
+    prepare_program!
     generate_resources!
     generate_globals!
   end
