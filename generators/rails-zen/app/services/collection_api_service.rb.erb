@@ -13,9 +13,9 @@ module CollectionApiService
   def describe_get_params
     cols = columns
     params do
-      optional :page, type: Integer, default: 1, values: {
-        proc: ->(v) { v.positive? }, message: 'is greater than 0'
-      }
+      optional :page,
+               type: Integer, default: 1,
+               values: ->(v) { v.positive? }
       optional :count, type: Integer, default: 20, values: 1..50
       optional :sort, type: Symbol, values: cols, default: :id
       optional :order, type: Symbol, values: %i[asc desc], default: :asc

@@ -16,7 +16,7 @@ class GlobalGenerator
 
   def filename
     @file
-      .sub(/^generators/, 'rails-zen')
+      .sub(%r{^generators/}, './')
       .sub(/.erb$/, '')
   end
 end
@@ -42,7 +42,7 @@ class ResourceGenerator
 
   def filename
     @file
-      .sub(/^generators/, 'rails-zen')
+      .sub(%r{^generators/}, './')
       .sub(/.erb$/, '')
       .sub('-id-', id_of(index))
       .sub('-resourcename-plural-', name.to_s.pluralize)
@@ -104,7 +104,7 @@ class Generator
   end
 
   def generate
-    prepare_program!
+    #prepare_program!
     generate_resources!
     generate_globals!
   end
