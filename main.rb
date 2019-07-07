@@ -215,7 +215,7 @@ class Generator
       next unless File.file?(file)
 
       content = File.read(file)
-      content.gsub!('rails_zen', 'meowery').gsub!('RailsZen', 'Meowery')
+      content = content.gsub('rails_zen', 'meowery').gsub('RailsZen', 'Meowery')
       File.write(file, content)
     end
   end
