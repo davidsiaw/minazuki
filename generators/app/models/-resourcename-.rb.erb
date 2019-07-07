@@ -22,7 +22,7 @@ class <%= name.to_s.camelize %> < ApplicationRecord
   validates :<%= resource.owner %>, presence: true
   <% end %>
 
-  <% resource.collections.each do |collection_name| %>
+  <% resource.collections.each do |collection_name, collection| %>
   has_many :<%= collection_name.to_s.pluralize %>, class_name: '<%= "#{name}_#{collection_name}".camelize %>', inverse_of: :<%= name %>
   <% end %>
 
@@ -66,5 +66,13 @@ class <%= name.to_s.camelize %> < ApplicationRecord
     end
     <%- end -%>
     order(attrib.to_sym => direction.to_sym)
+  }
+
+  scope :paginate, lambda { |page, count|
+    limit(count).offset((page - 1) * count)
+  }
+
+  scope :show_for_api, lambda { |params|
+    paginate(params[:page], params[:count]).ordered_by(params[:sort], params[:order])
   }
 end

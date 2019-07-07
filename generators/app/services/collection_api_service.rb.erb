@@ -2,37 +2,50 @@
 
 # Service to describe an API based on the model metadata
 module CollectionApiService
-  def describe(resource_meta)
+  def describe(resource_meta, inner: false)
+    @resource_meta = resource_meta
     describe_get(resource_meta)
     describe_post(resource_meta)
     describe_count(resource_meta)
-    describe_object(resource_meta)
+    describe_object(resource_meta, inner: inner)
+  end
+
+  def describe_get_params
+    cols = columns
+    params do
+      optional :page, type: Integer, default: 1, values: {
+        proc: ->(v) { v.positive? }, message: 'is greater than 0'
+      }
+      optional :count, type: Integer, default: 20, values: 1..50
+      optional :sort, type: Symbol, values: cols, default: :id
+      optional :order, type: Symbol, values: %i[asc desc], default: :asc
+    end
+  end
+
+  def columns
+    %i[id updated_at] + @resource_meta.fields.keys
+  end
+
+  def class_of_resource
+    @resource_meta.name.to_s.camelize.constantize
+  end
+
+  def plural
+    @resource_meta.name.to_s.camelize.pluralize
   end
 
   def describe_get(resource_meta)
-    rclass = resource_meta.name.to_s.camelize.constantize
-    columns = %i[id updated_at] + resource_meta.fields.keys
-    desc "Get #{resource_meta.name.to_s.camelize.pluralize}"
-    params do
-      optional :page, type: Integer
-      optional :count, type: Integer
-      optional :sort, type: Symbol, values: columns, default: :id
-      optional :order, type: Symbol, values: %i[asc desc], default: :asc
-    end
+    rclass = class_of_resource
+    desc "Get #{plural}"
+    describe_get_params
     get do
-      count = params[:count] || 20
-      page = params[:page] || 1
-      page = [1, page].max
-      count = [1, count].max
-      count = [count, 50].min
-      result = rclass.limit(count).offset((page - 1) * count)
-      result = result.ordered_by(params[:sort], params[:order])
+      result = rclass.show_for_api(params)
       present result, with: CollectionPresenter.new(resource_meta)
     end
   end
 
   def describe_count(resource_meta)
-    desc "Number of #{resource_meta.name.to_s.camelize.pluralize}"
+    desc "Number of #{plural}"
     get '_count' do
       {
         count: resource_meta.name.to_s.camelize.constantize.count
@@ -40,9 +53,8 @@ module CollectionApiService
     end
   end
 
-  def describe_post(resource_meta)
-    rclass = resource_meta.name.to_s.camelize.constantize
-    desc "Create a new #{resource_meta.name.to_s.camelize.pluralize}"
+  def describe_post_params
+    resource_meta = @resource_meta
     params do
       resource_meta.fields.each do |field_name, field|
         if %i[string integer boolean].include?(field[:type])
@@ -52,25 +64,40 @@ module CollectionApiService
         end
       end
     end
+  end
+
+  def describe_post(resource_meta)
+    rclass = class_of_resource
+    desc "Create a new #{plural}"
+    describe_post_params
     post do
       begin
-        item = rclass.create!(params)
-        present item, with: ObjectPresenter.new(resource_meta)
+        present rclass.create!(params), with: ObjectPresenter.new(resource_meta)
       rescue ActiveRecord::RecordInvalid
         error!({ error: :invalid_value }, 400)
       end
     end
   end
 
-  def describe_object(resource_meta)
+  def describe_collection_selector
+    resource_meta = @resource_meta
     params do
       requires :"#{resource_meta.name}_id",
                type: String,
                desc: "ID of the #{resource_meta.name}"
     end
+  end
+
+  def describe_object(resource_meta, inner:)
+    rclass = class_of_resource
+    describe_collection_selector
     route_param :"#{resource_meta.name}_id" do
       extend ObjectApiService
-      describe(resource_meta)
+      before do
+        @item = rclass.find_by(id: params[:"#{resource_meta.name}_id"])
+        error!({ error: :not_found }, 404) if @item.nil?
+      end
+      describe!(resource_meta, inner: inner)
     end
   end
 end

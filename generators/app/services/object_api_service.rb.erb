@@ -2,18 +2,17 @@
 
 # Service to describe an API based on the model metadata
 module ObjectApiService
-  def describe(resource_meta)
-    before do
-      @item = resource_meta.name.to_s.camelize.constantize.find_by(id: params[:"#{resource_meta.name}_id"])
-      error!({ error: :not_found }, 404) if @item.nil?
-    end
-
+  def describe!(resource_meta, inner: false)
     describe_get!(resource_meta)
     describe_put!(resource_meta)
     describe_delete!(resource_meta)
 
     resource_meta.fields.each do |field_name, field|
-      describe_field!(resource_meta, field_name, field)
+      describe_field!(resource_meta, field_name, field, inner: inner)
+    end
+
+    resource_meta.collections.each do |collection_name, collection|
+      describe_collection!(resource_meta, collection_name, collection, inner: inner)
     end
   end
 
@@ -56,7 +55,9 @@ module ObjectApiService
     end
   end
 
-  def describe_field!(resource_meta, field_name, field)
+  def describe_field!(resource_meta, field_name, field, inner:)
+    return if inner
+
     resource field_name do
       desc "Get the #{field_name.to_s.humanize} of the #{resource_meta.name.to_s.humanize}"
       get do
@@ -67,6 +68,14 @@ module ObjectApiService
           present @item.send(field_name), with: ObjectPresenter.new(meta_class.new)
         end
       end
+    end
+  end
+
+  def describe_collection!(resource_meta, collection_name, collection, inner:)
+    resource collection_name do
+      extend CollectionApiService
+      meta_class = "#{collection[:type].to_s.camelize}Meta".constantize
+      describe(meta_class.new, inner: true)
     end
   end
 end

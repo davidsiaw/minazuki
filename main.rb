@@ -158,7 +158,7 @@ class Generator
       resource.fields,
       resource.parent,
       result[resource.parent],
-      resource.collections.keys,
+      resource.collections.map { |k, _| [k, { type: :"#{resource_name}_#{k}" }] }.to_h,
       expander.owners[resource_name]
     )
   end
@@ -232,7 +232,7 @@ class PreparedResourceClass
   def initialize(fields,
                  parent_name = nil,
                  parent_resource = nil,
-                 collections = [],
+                 collections = {},
                  owner = nil)
     @fields = fields
     @parent_name = parent_name

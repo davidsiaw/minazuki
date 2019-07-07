@@ -30,9 +30,9 @@ class <%= name.to_s.camelize %>Meta
     []
     <% else %>
     if @collections.nil?
-      @collections = []
-      <% resource.collections.each do |collection_name| %>
-      @collections << :<%= collection_name %>
+      @collections = {}
+      <% resource.collections.each do |collection_name, collection| %>
+      @collections[:<%= collection_name %>] = { type: :<%= collection[:type] %> }
       <% end %>
     end
     @collections
