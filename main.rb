@@ -360,8 +360,7 @@ gen.generate
 
 if ENV['REPO']
   exec <<~START
-    cd rails-zen &&
-    docker-compose -f rails-zen/.circleci/compose-unit.yml up -d
+    cd rails-zen && ls && docker-compose -f .circleci/compose-unit.yml up -d
   START
 else
   exec <<~START
