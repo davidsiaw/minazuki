@@ -358,9 +358,16 @@ end
 gen = Generator.new dsl
 gen.generate
 
-exec <<~START
-  cd rails-zen &&
-  docker-compose -f docker-compose.unit.yml up -d
-  docker logs -f rz
-  docker-compose -f rails-zen/docker-compose.unit.yml down -v
-START
+if ENV['REPO']
+  exec <<~START
+    cd rails-zen &&
+    docker-compose -f .circleci/compose-unit.yml up -d
+  START
+else
+  exec <<~START
+    cd rails-zen &&
+    docker-compose -f docker-compose.unit.yml up -d
+    docker logs -f rz
+    docker-compose -f rails-zen/docker-compose.unit.yml down -v
+  START
+end
