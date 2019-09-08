@@ -2,6 +2,8 @@
 
 # Service to describe an API based on the model metadata
 module ObjectApiService
+  BASIC_TYPES = %i[string integer boolean]
+
   def describe!(resource_meta, inner: false)
     describe_get!(resource_meta)
     describe_put!(resource_meta)
@@ -12,7 +14,8 @@ module ObjectApiService
     end
 
     resource_meta.collections.each do |collection_name, collection|
-      describe_collection!(resource_meta, collection_name, collection, inner: inner)
+      describe_collection!(resource_meta, collection_name,
+                           collection, inner: inner)
     end
   end
 
@@ -23,24 +26,26 @@ module ObjectApiService
     end
   end
 
-  def describe_put!(resource_meta)
-    desc "Modify a #{resource_meta.name.to_s.humanize}"
+  def describe_put_params!(resource_meta)
     params do
       resource_meta.fields.each do |field_name, field|
-        if %i[string integer boolean].include?(field[:type])
+        if BASIC_TYPES.include?(field[:type])
           requires field_name, type: field[:type].to_s.camelize.constantize
         else
           requires "#{field_name}_id", type: String
         end
       end
     end
+  end
+
+  def describe_put!(resource_meta)
+    desc "Modify a #{resource_meta.name.to_s.humanize}"
+    describe_put_params!(resource_meta)
     put do
       resource_meta.fields.each do |field_name, field|
-        if %i[string integer boolean].include?(field[:type])
-          @item.send(:"#{field_name}=", params[field_name])
-        else
-          @item.send(:"#{field_name}_id=", params[:"#{field_name}_id"])
-        end
+        field_ident = "#{field_name}_id"
+        field_ident = field_name if BASIC_TYPES.include?(field[:type])
+        @item.send(:"#{field_ident}=", params[field_ident])
       end
       @item.save!
       present @item, with: ObjectPresenter.new(resource_meta)
@@ -61,7 +66,7 @@ module ObjectApiService
     resource field_name do
       desc "Get the #{field_name.to_s.humanize} of the #{resource_meta.name.to_s.humanize}"
       get do
-        if %i[string integer boolean].include?(field[:type])
+        if BASIC_TYPES.include?(field[:type])
           @item.send(field_name)
         else
           meta_class = "#{field[:type].to_s.camelize}Meta".constantize
