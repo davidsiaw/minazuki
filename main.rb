@@ -104,7 +104,7 @@ class Generator
   end
 
   def generate
-    #prepare_program!
+    prepare_program!
     generate_resources!
     generate_globals!
     system 'cd rails-zen && rubocop --auto-correct'
@@ -361,7 +361,9 @@ gen.generate
 
 if ENV['REPO']
   exec <<~START
-    cd rails-zen && ls && docker-compose -f ../.circleci/compose-unit.yml up -d
+    cd rails-zen
+    ls
+    docker-compose -f .circleci/compose-unit.yml up -d
   START
 else
   exec <<~START
