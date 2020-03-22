@@ -12,8 +12,7 @@ class <%= name.to_s.camelize %>Meta < ResourceMeta
       <% resource.fields.each do |field_name, field| %>
       @fields[:<%= field_name %>] = { type: :<%= field[:type] %> }
       <% end %>  
-      <% [resource.parent_fields.to_a.last].each do |parent, fields| %>
-      <%   next if fields.nil? %>
+      <% resource.parent_fields.each do |parent, fields| %>
       # Inherited from <%= parent %>
       <%   fields.each do |field_name, field| %>
       @fields[:<%= field_name %>] = { type: :<%= field[:type] %> }

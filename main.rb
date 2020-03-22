@@ -220,6 +220,29 @@ class Generator
       File.write(file, content)
     end
   end
+
+  def owners_of(resource)
+    result = []
+    cur_owner_name = resource.owner
+    loop do
+      break if cur_owner_name.nil?
+
+      result << cur_owner_name
+      cur_owner_name = @resources[cur_owner_name].owner
+    end
+    result
+  end
+
+  def base_owners_of(resource)
+    arr = owners_of(resource)
+    arr.count.times do |index|
+      word = arr[-1 - index]
+      (arr.count - index - 1).times do |i|
+        arr[i] = arr[i].to_s[word.length + 1..-1].to_sym
+      end
+    end
+    arr
+  end
 end
 
 # resource used for generation

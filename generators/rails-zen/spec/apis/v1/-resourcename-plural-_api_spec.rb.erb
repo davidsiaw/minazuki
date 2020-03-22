@@ -14,6 +14,56 @@ RSpec.describe V1::<%= name.to_s.pluralize.camelize %>Api, type: :request do
       expect(response.body).to eq({ count: 0 }.to_json)
     end
 
+    <% owners = owners_of(resource) %>
+    <% if owners.length.nonzero? %>
+    <%   base_name = name[owners[0].length + 1..-1] %>
+    <%   base_owners = base_owners_of(resource) %>
+    <%   owners.each_with_index do |owner_name, index| %>
+    <%    path = [owner_name, *base_owners[0...index].reverse, base_name]
+                 .map(&:to_s).map(&:pluralize) %>
+    <%    subst_path = path.join('/:id/') %>
+    it 'can create a new <%= name %> via <%= subst_path %>' do
+      params = {}
+      <% resource.parent_fields.each do |parent, fields| %>
+      <%   fields.each do |field_name, field| -%>
+      <%     if field[:type] == :string %>
+      params[:<%= field_name %>] = 'asd'
+      <%     elsif field[:type] == :boolean %>
+      params[:<%= field_name %>] = 'true'
+      <%     elsif field[:type] == :integer %>
+      params[:<%= field_name %>] = '123'
+      <%     else %>
+      params[:<%= field_name %>_id] = (create :<%= field[:type] %>).id
+      <%     end -%>
+      <%   end -%>
+      <% end -%>
+      <% resource.fields.each do |field_name, field| %>
+      <%   if field[:type] == :string %>
+      params[:<%= field_name %>] = 'asd'
+      <%   elsif field[:type] == :boolean %>
+      params[:<%= field_name %>] = 'true'
+      <%   elsif field[:type] == :integer %>
+      params[:<%= field_name %>] = '123'
+      <%   else %>
+      params[:<%= field_name %>_id] = (create :<%= field[:type] %>).id
+      <%   end -%>
+      <% end %>
+      create :<%= resource.owner %>
+
+      <% last = path[0].singularize.to_s.camelize %>
+      <% path[0..-2].each_with_index do |section, i| %>
+      <%= section.singularize %> = <%= last %>.last
+      <% last = "#{section.singularize}.#{path[i+1]}" %>
+      <% subst_path.sub!(':id', '#{' + "#{section.singularize}.id" + '}') %>
+      <% end %>
+
+      post "/api/v1/<%= subst_path %>", params: params
+      expect(<%= name.to_s.camelize %>.last).not_to be nil
+    end
+    <%   end %>
+
+    <% end %>
+
     it 'can create a new <%= name %>' do
       params = {}
       <% resource.parent_fields.each do |parent, fields| %>
@@ -39,10 +89,10 @@ RSpec.describe V1::<%= name.to_s.pluralize.camelize %>Api, type: :request do
       <%   else %>
       params[:<%= field_name %>_id] = (create :<%= field[:type] %>).id
       <%   end -%>
+      <% end -%>
       <% if resource.owner %>
       params[:<%= resource.owner %>_id] = (create :<%= resource.owner %>).id
       <% end %>
-      <% end -%>
       post '/api/v1/<%= name.to_s.pluralize %>', params: params
       expect(<%= name.to_s.camelize %>.last).not_to be nil
     end
