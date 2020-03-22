@@ -60,9 +60,9 @@ RSpec.describe V1::<%= name.to_s.pluralize.camelize %>Api, type: :request do
       post "/api/v1/<%= subst_path %>", params: params
       expect(<%= name.to_s.camelize %>.last).not_to be nil
     end
-    <%   end %>
 
-    <% end %>
+    <%   end %>
+    <% end -%>
 
     it 'can create a new <%= name %>' do
       params = {}
