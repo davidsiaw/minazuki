@@ -362,13 +362,14 @@ gen.generate
 if ENV['REPO']
   exec <<~START
     cd rails-zen
+    bundle install
     ls
     docker-compose -f .circleci/compose-unit.yml up -d
   START
 else
   exec <<~START
     cd rails-zen
-    docker-compose -f docker-compose.unit.yml up -d
+    docker-compose -f docker-compose.unit.yml up --build -d
     docker logs -f rz
     docker-compose -f docker-compose.unit.yml down -v
   START

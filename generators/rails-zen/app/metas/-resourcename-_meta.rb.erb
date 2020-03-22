@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Class that describes the semantics of a <%= name %>
-class <%= name.to_s.camelize %>Meta
+class <%= name.to_s.camelize %>Meta < ResourceMeta
   def name
     :<%= name %>
   end
@@ -12,7 +12,8 @@ class <%= name.to_s.camelize %>Meta
       <% resource.fields.each do |field_name, field| %>
       @fields[:<%= field_name %>] = { type: :<%= field[:type] %> }
       <% end %>  
-      <% resource.parent_fields.each do |parent, fields| %>
+      <% [resource.parent_fields.to_a.last].each do |parent, fields| %>
+      <%   next if fields.nil? %>
       # Inherited from <%= parent %>
       <%   fields.each do |field_name, field| %>
       @fields[:<%= field_name %>] = { type: :<%= field[:type] %> }

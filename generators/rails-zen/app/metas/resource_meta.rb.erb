@@ -1,0 +1,25 @@
+# frozen_string_literal: true
+
+# base class for resources
+class ResourceMeta
+  # Filter out the parameters to only what the resource needs
+  def filter_params(params)
+    result = {}
+    params.each do |key, value|
+      result[key] = value if raw_fields.key? key.to_sym
+    end
+    result
+  end
+
+  def raw_fields
+    @raw_fields ||= begin
+      fields.map do |key, value|
+        if "#{value[:type].to_s.camelize}Meta".safe_constantize
+          [:"#{key}_id", value]
+        else
+          [key, value]
+        end
+      end.to_h
+    end
+  end
+end

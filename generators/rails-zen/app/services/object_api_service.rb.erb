@@ -77,7 +77,7 @@ module ObjectApiService
   end
 
   def describe_collection!(resource_meta, collection_name, collection, inner:)
-    resource collection_name do
+    resource collection_name.to_s.pluralize do
       extend CollectionApiService
       meta_class = "#{collection[:type].to_s.camelize}Meta".constantize
       describe(meta_class.new, inner: true)

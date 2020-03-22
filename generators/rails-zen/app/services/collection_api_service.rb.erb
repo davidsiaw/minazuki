@@ -72,7 +72,8 @@ module CollectionApiService
     describe_post_params
     post do
       begin
-        present rclass.create!(params), with: ObjectPresenter.new(resource_meta)
+        filtered_params = resource_meta.filter_params(params)
+        present rclass.create!(filtered_params), with: ObjectPresenter.new(resource_meta)
       rescue ActiveRecord::RecordInvalid
         error!({ error: :invalid_value }, 400)
       end
