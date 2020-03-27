@@ -1,0 +1,56 @@
+# frozen_string_literal: true
+
+# Service to display a relation
+class RelationRepresenterService
+  def initialize(resource_meta, relation, options)
+    @resource_meta = resource_meta
+    @relation = relation
+    @options = options
+  end
+
+  def host
+    @options[:host]
+  end
+
+  def protocol
+    @options[:protocol]
+  end
+
+  def for_delete?
+    @options[:delete]
+  end
+
+  def represent_url(name, value)
+    path = "/api/v1/#{name.to_s.pluralize}/#{value.downcase}"
+
+    "#{protocol}://#{host}#{path}"
+  end
+
+  def id_for(field_name)
+    return @relation.id if field_name == :self
+
+    @relation.send(:"#{field_name}_id")
+  end
+
+  def contents_for(field_name, field_type)
+    if %i[string integer boolean].include? field_type
+      return @relation.send(field_name)
+    end
+
+    {
+      _url: represent_url(field_type, id_for(field_name))
+    }
+  end
+
+  def represent
+    result = {}
+    unless for_delete?
+      result[:_url] = represent_url(@resource_meta.name, id_for(:self))
+    end
+
+    @resource_meta.fields.each do |field_name, field|
+      result[field_name] = contents_for(field_name, field[:type])
+    end
+    result
+  end
+end

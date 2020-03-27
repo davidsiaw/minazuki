@@ -6,28 +6,16 @@ class ObjectPresenter
     @resource_meta = resource_meta
   end
 
-  def represent_url(name, value, options)
-    path = "/api/v1/#{name.to_s.pluralize}/#{value.downcase}"
+  def represent(relation, options)
     host = options[:env]['SERVER_NAME']
     protocol = options[:env]['rack.url_scheme']
+    delete = options[:env]['REQUEST_METHOD'] == 'DELETE'
 
-    "#{protocol}://#{host}#{path}"
-  end
-
-  def represent(relation, options)
-    result = {}
-    unless options[:env]['REQUEST_METHOD'] == 'DELETE'
-      result[:_url] = represent_url(@resource_meta.name, relation.id, options)
-    end
-    @resource_meta.fields.each do |field_name, field|
-      if %i[string integer boolean].include? field[:type]
-        result[field_name] = relation.send(field_name)
-      else
-        result[field_name] = {
-          _url: represent_url(field[:type], relation.send(:"#{field_name}_id"), options)
-        }
-      end
-    end
-    result
+    rrs = RelationRepresenterService.new(@resource_meta,
+                                         relation,
+                                         host: host,
+                                         protocol: protocol,
+                                         delete: delete)
+    rrs.represent
   end
 end
