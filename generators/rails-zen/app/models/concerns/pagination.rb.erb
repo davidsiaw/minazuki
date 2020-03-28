@@ -1,0 +1,15 @@
+# frozen_string_literal: true
+
+module Pagination
+  extend ActiveSupport::Concern
+
+  included do
+    scope :paginate, lambda { |page, count|
+      limit(count).offset((page - 1) * count)
+    }
+
+    scope :show_for_api, lambda { |params|
+      paginate(params[:page], params[:count]).ordered_by(params[:sort], params[:order])
+    }
+  end
+end

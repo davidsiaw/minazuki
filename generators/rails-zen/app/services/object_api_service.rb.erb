@@ -2,20 +2,34 @@
 
 # Service to describe an API based on the model metadata
 module ObjectApiService
-  BASIC_TYPES = %i[string integer boolean]
+  BASIC_TYPES = %i[string integer boolean].freeze
 
   def describe!(resource_meta, inner: false)
+    @inner = inner
+    generate_before!(resource_meta)
     describe_get!(resource_meta)
     describe_put!(resource_meta)
     describe_delete!(resource_meta)
+    describe_fields(resource_meta)
+  end
 
+  def generate_before!(resource_meta)
+    before do
+      @item = resource_meta.name.to_s
+                           .camelize.constantize
+                           .find_by(id: params[:"#{resource_meta.name}_id"])
+      error!({ error: :not_found }, 404) if @item.nil?
+    end
+  end
+
+  def describe_fields(resource_meta)
     resource_meta.fields.each do |field_name, field|
-      describe_field!(resource_meta, field_name, field, inner: inner)
+      describe_field!(resource_meta, field_name, field, inner: @inner)
     end
 
     resource_meta.collections.each do |collection_name, collection|
       describe_collection!(resource_meta, collection_name,
-                           collection, inner: inner)
+                           collection, inner: @inner)
     end
   end
 

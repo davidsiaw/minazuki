@@ -6,6 +6,8 @@
 #   @return [<%= field[:type].to_s.camelize %>] Description of this attribute
 <% end -%>
 class <%= name.to_s.camelize %> < ApplicationRecord
+  include Pagination
+
   has_paper_trail
 
   <% resource.fields.each do |field_name, field| %>
@@ -66,13 +68,5 @@ class <%= name.to_s.camelize %> < ApplicationRecord
     end
     <%- end -%>
     order(attrib.to_sym => direction.to_sym)
-  }
-
-  scope :paginate, lambda { |page, count|
-    limit(count).offset((page - 1) * count)
-  }
-
-  scope :show_for_api, lambda { |params|
-    paginate(params[:page], params[:count]).ordered_by(params[:sort], params[:order])
   }
 end

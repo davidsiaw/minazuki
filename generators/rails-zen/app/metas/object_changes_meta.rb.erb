@@ -1,0 +1,22 @@
+# frozen_string_literal: true
+
+# Object changes meta
+class ObjectChangesMeta < ResourceMeta
+  def name
+    :change
+  end
+
+  def fields
+    if @fields.nil?
+      @fields = {}
+      @fields[:event] = { type: :string }
+      @fields[:whodunnit] = { type: :string }
+      @fields[:object_changes] = { type: :string }
+    end
+    @fields
+  end
+
+  def collections
+    []
+  end
+end

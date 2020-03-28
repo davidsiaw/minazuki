@@ -25,6 +25,12 @@ class <%= name.to_s.camelize %>Meta < ResourceMeta
     @fields
   end
 
+  def readonly_fields
+    {
+      updated_at: { type: :string }
+    }
+  end
+
   def collections
     <% if resource.collections.length.zero? %>
     []

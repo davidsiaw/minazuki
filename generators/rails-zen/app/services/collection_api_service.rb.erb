@@ -7,23 +7,8 @@ module CollectionApiService
     describe_get(resource_meta)
     describe_post(resource_meta)
     describe_count(resource_meta)
+    describe_changes(resource_meta)
     describe_object(resource_meta, inner: inner)
-  end
-
-  def describe_get_params
-    cols = columns
-    params do
-      optional :page,
-               type: Integer, default: 1,
-               values: ->(v) { v.positive? }
-      optional :count, type: Integer, default: 20, values: 1..50
-      optional :sort, type: Symbol, values: cols, default: :id
-      optional :order, type: Symbol, values: %i[asc desc], default: :asc
-    end
-  end
-
-  def columns
-    %i[id updated_at] + @resource_meta.fields.keys
   end
 
   def class_of_resource
@@ -34,10 +19,26 @@ module CollectionApiService
     @resource_meta.name.to_s.camelize.pluralize
   end
 
+  def columns(resource_meta)
+    %i[id] + resource_meta.fields.keys + resource_meta.readonly_fields.keys
+  end
+
+  def describe_get_collection_params(resource_meta)
+    cols = columns(resource_meta)
+    params do
+      optional :page,
+               type: Integer, default: 1,
+               values: ->(v) { v.positive? }
+      optional :count, type: Integer, default: 20, values: 1..50
+      optional :sort, type: Symbol, values: cols, default: :id
+      optional :order, type: Symbol, values: %i[asc desc], default: :asc
+    end
+  end
+
   def describe_get(resource_meta)
     rclass = class_of_resource
     desc "Get #{plural}"
-    describe_get_params
+    describe_get_collection_params(resource_meta)
     get do
       result = rclass.show_for_api(params)
       present result, with: CollectionPresenter.new(resource_meta)
@@ -53,11 +54,24 @@ module CollectionApiService
     end
   end
 
+  def describe_changes(resource_meta)
+    desc "Change history of #{plural}"
+    change_meta = CollectionChangesMeta.new
+    describe_get_collection_params(change_meta)
+    get '_changes' do
+      result = PaperTrail::Version.where(
+        item_type: resource_meta.name.to_s.camelize
+      ).show_for_api(params)
+
+      present result, with: CollectionPresenter.new(change_meta)
+    end
+  end
+
   def describe_post_params
     resource_meta = @resource_meta
     params do
       resource_meta.fields.each do |field_name, field|
-        if %i[string integer boolean].include?(field[:type])
+        if ObjectApiService::BASIC_TYPES.include?(field[:type])
           requires field_name, type: field[:type].to_s.camelize.constantize
         else
           requires "#{field_name}_id", type: String
@@ -89,16 +103,35 @@ module CollectionApiService
     end
   end
 
+  def describe_object_changes(resource_meta)
+    @resource_meta = resource_meta
+    desc "Get a #{resource_meta.name.to_s.humanize}'s changes"
+    change_meta = ObjectChangesMeta.new
+    describe_get_collection_params(change_meta)
+    get do
+      result = PaperTrail::Version.where(
+        item_type: resource_meta.name.to_s.camelize,
+        item_id: params[:"#{resource_meta.name}_id"]
+      ).show_for_api(params)
+
+      return error!({ error: :not_found }, 404) if result.blank?
+
+      present result, with: CollectionPresenter.new(change_meta)
+    end
+  end
+
   def describe_object(resource_meta, inner:)
     rclass = class_of_resource
     describe_collection_selector
     route_param :"#{resource_meta.name}_id" do
-      extend ObjectApiService
-      before do
-        @item = rclass.find_by(id: params[:"#{resource_meta.name}_id"])
-        error!({ error: :not_found }, 404) if @item.nil?
+      group do
+        extend ObjectApiService
+        describe!(resource_meta, inner: inner)
       end
-      describe!(resource_meta, inner: inner)
+      group :_changes do
+        extend CollectionApiService
+        describe_object_changes(resource_meta)
+      end
     end
   end
 end

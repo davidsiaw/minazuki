@@ -1,0 +1,17 @@
+# frozen_string_literal: true
+
+module PaperTrail
+  # Extension to allow papertrail versions to use ULID
+  class Version < ActiveRecord::Base
+    include PaperTrail::VersionConcern
+    include ULID::Rails
+    include Pagination
+
+    ulid :id
+    ulid :item_id
+
+    scope :ordered_by, lambda { |attrib, direction|
+      order(attrib.to_sym => direction.to_sym)
+    }
+  end
+end

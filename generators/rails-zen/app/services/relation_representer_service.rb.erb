@@ -33,7 +33,7 @@ class RelationRepresenterService
   end
 
   def contents_for(field_name, field_type)
-    if %i[string integer boolean].include? field_type
+    if ObjectApiService::BASIC_TYPES.include? field_type
       return @relation.send(field_name)
     end
 
