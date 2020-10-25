@@ -301,6 +301,11 @@ class ResourceClass
     @fields[name] = options
   end
 
+  def with_many(type)
+    name = type.to_s.pluralize
+    #@collections[name] = type
+  end
+
   def collection(name, &block)
     crc = ResourceClass.new(parent_class: nil)
     crc.instance_eval(&block)
@@ -329,6 +334,58 @@ dsl = DSL.new
 dsl.instance_eval do
   resource_class :song do
     field :name, type: :string
+    with_many :artist
+  end
+
+  resource_class :band do
+    field :name, type: :string
+    with_many :artist
+  end
+
+  resource_class :artist do
+    field :name, type: :string
+  end
+
+  resource_class :album do
+    field :name, type: :string
+    with_many :song
+  end
+
+  resource_class :song do
+    field :name, type: :string
+    field :url, type: :string
+    field :length_seconds, type: :integer
+    with_many :artist
+
+    collection :lyric do
+      field :timestamp_seconds, type: :integer
+
+      collection :line do
+        field :content, type: :string
+        field :lang_code, type: :string
+
+        collection :annotation do
+          field :content, type: :string
+          field :tag, type: :string
+        end
+      end
+    end
+  end
+
+  resource_class :derivation, extends: :song do
+    field :original, type: :song
+  end
+
+  resource_class :remix, extends: :derivation do
+  end
+
+  resource_class :cover, extends: :derivation do
+  end
+
+  resource_class :instrumental, extends: :derivation do
+  end
+
+  resource_class :arrange, extends: :derivation do
   end
 end
 
