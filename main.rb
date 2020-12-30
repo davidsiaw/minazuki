@@ -287,7 +287,8 @@ end
 class ResourceClass
   attr_reader :fields, :parent, :collections
 
-  def initialize(parent_class:)
+  def initialize(resource_type, parent_class: nil)
+    @resource_type = resource_type
     @fields = {}
     @parent = parent_class
     @collections = {}
@@ -301,61 +302,81 @@ class ResourceClass
     @fields[name] = options
   end
 
-  def with_many(type)
-    name = type.to_s.pluralize
-    #@collections[name] = type
-  end
-
   def collection(name, &block)
-    crc = ResourceClass.new(parent_class: nil)
+    crc = ResourceClass.new(name.to_s)
     crc.instance_eval(&block)
     @collections[name] = crc
   end
 end
 
+
 # meow
 class DSL
-  attr_reader :resources
+  attr_reader :resources, :junctions
 
   def initialize
     @resources = {}
+    @manies = Set.new
+    @junctions = Set.new
   end
 
   private
 
   def resource_class(name, extends: nil, &block)
-    rc = ResourceClass.new(parent_class: extends)
+    rc = ResourceClass.new(name, parent_class: extends)
     rc.instance_eval(&block)
     @resources[name] = rc
+  end
+
+  def has_many(other)
+    manies << other
+  end
+
+  def one_to_many(the_one, the_many)
+    raise "many #{the_one} already maps to many #{the_many}" if @manies[the_one]&.include? the_many
+
+    @ones[the_one] ||= Set.new
+    @ones[the_one] << the_many
+  end
+
+  def many_to_many(many1, many2)
+    raise "one #{many1} already maps to many #{many2}" if @ones[many1]&.include? many2
+    raise "one #{many2} already maps to many #{many1}" if @ones[many2]&.include? many1
+
+    @manies[many1] ||= Set.new
+    @manies[many2] ||= Set.new
+    @manies[many1] << many2
+    @manies[many2] << many1
+
+    @junctions << [many1, many2].sort
   end
 end
 
 dsl = DSL.new
 dsl.instance_eval do
-  resource_class :song do
-    field :name, type: :string
-    with_many :artist
-  end
-
   resource_class :band do
     field :name, type: :string
-    with_many :artist
+    has_many :artist
   end
 
   resource_class :artist do
     field :name, type: :string
+    has_many :song
+    has_many :band
+    has_many :album
   end
 
   resource_class :album do
     field :name, type: :string
-    with_many :song
   end
+  many_to_many :album, :song
 
   resource_class :song do
     field :name, type: :string
     field :url, type: :string
     field :length_seconds, type: :integer
-    with_many :artist
+
+    has_many :artist
 
     collection :lyric do
       field :timestamp_seconds, type: :integer
@@ -392,6 +413,8 @@ end
 gen = Generator.new dsl
 gen.generate
 
+p dsl.junctions
+return
 if ENV['REPO']
   exec <<~START
     cd rails-zen
