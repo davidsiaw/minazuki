@@ -9,6 +9,7 @@ require 'bunny/tsort'
 # Global generator
 class GlobalGenerator
   attr_reader :resources
+
   def initialize(file, resources)
     @resources = resources
     @file = file
@@ -24,6 +25,7 @@ end
 # Resource generator
 class ResourceGenerator
   attr_reader :name, :resource, :index
+
   def initialize(file, name, resource, index)
     @name = name
     @resource = resource
@@ -98,9 +100,11 @@ class ResourceExpander
 end
 
 class ManyResolver
+  attr_reader :mapping_tables
+
   def initialize
     @relationships = {}
-    @mapping_tables = Set.new
+    @mapping_tables = {}
   end
 
   def add(resource_name, resource)
@@ -108,21 +112,17 @@ class ManyResolver
     resource.manies.each do |x|
       @relationships[resource_name] << x
 
-      if @relationships[x]&.include?(resource_name)
-        mapping = [resource_name, x].sort.join('_').to_sym
-        @mapping_tables << mapping
+      next unless @relationships[x]&.include?(resource_name)
 
-        @relationships[resource_name].delete(x)
-        @relationships[x].delete(resource_name)
+      mapping = [resource_name, x].sort.join('_').to_sym
+      @mapping_tables[mapping] = [resource_name, x]
 
-        @relationships[resource_name] << mapping
-        @relationships[x] << mapping
-      end
+      @relationships[resource_name].delete(x)
+      @relationships[x].delete(resource_name)
+
+      @relationships[resource_name] << mapping
+      @relationships[x] << mapping
     end
-  end
-
-  def mapping_tables
-    @mapping_tables.to_a
   end
 
   def has_many_of(table)
@@ -187,6 +187,20 @@ class Generator
         mr.add(resourcename, r)
       end
     end
+
+    mr.mapping_tables.each do |mt, tables|
+      fields = {}
+      fields[tables[0]] = { type: tables[1] }
+      fields[tables[1]] = { type: tables[0] }
+      result[mt] = PreparedResourceClass.new(
+        fields,
+        nil,
+        nil,
+        {},
+        nil
+      )
+    end
+
     { **result }
   end
 
@@ -350,10 +364,9 @@ class ResourceClass
   end
 end
 
-
 # meow
 class DSL
-  attr_reader :resources, :junctions
+  attr_reader :resources
 
   def initialize
     @resources = {}

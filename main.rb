@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "lib/minazuki"
+require_relative 'lib/minazuki'
 
 dsl = DSL.new
 dsl.instance_eval do
@@ -63,7 +63,6 @@ end
 gen = Generator.new dsl
 gen.generate
 
-p dsl.junctions
 return
 if ENV['REPO']
   exec <<~START
@@ -80,76 +79,53 @@ else
     docker-compose  down -v
   START
 end
-  # resource_class :band do
-  #   field :name, type: :string
-  #   # has_many :artist
-  # end
+# resource_class :band do
+#   field :name, type: :string
+#   # has_many :artist
+# end
 
-  # resource_class :artist do
-  #   field :name, type: :string
-  # end
+# resource_class :artist do
+#   field :name, type: :string
+# end
 
-  # resource_class :album do
-  #   field :name, type: :string
-  #   # has_many :song
-  # end
+# resource_class :album do
+#   field :name, type: :string
+#   # has_many :song
+# end
 
-  # resource_class :song do
-  #   field :name, type: :string
-  #   field :url, type: :string
-  #   field :length_seconds, type: :integer
-  #   # has_many :artist
+# resource_class :song do
+#   field :name, type: :string
+#   field :url, type: :string
+#   field :length_seconds, type: :integer
+#   # has_many :artist
 
-  #   collection :lyric do
-  #     field :timestamp_seconds, type: :integer
+#   collection :lyric do
+#     field :timestamp_seconds, type: :integer
 
-  #     collection :line do
-  #       field :content, type: :string
-  #       field :lang_code, type: :string
+#     collection :line do
+#       field :content, type: :string
+#       field :lang_code, type: :string
 
-  #       collection :annotation do
-  #         field :content, type: :string
-  #         field :tag, type: :string
-  #       end
-  #     end
-  #   end
-  # end
+#       collection :annotation do
+#         field :content, type: :string
+#         field :tag, type: :string
+#       end
+#     end
+#   end
+# end
 
-  # resource_class :derivation, extends: :song do
-  #   field :original, type: :song
-  # end
+# resource_class :derivation, extends: :song do
+#   field :original, type: :song
+# end
 
-  # resource_class :remix, extends: :derivation do
-  # end
+# resource_class :remix, extends: :derivation do
+# end
 
-  # resource_class :cover, extends: :derivation do
-  # end
+# resource_class :cover, extends: :derivation do
+# end
 
-  # resource_class :instrumental, extends: :derivation do
-  # end
+# resource_class :instrumental, extends: :derivation do
+# end
 
-  # resource_class :arrange, extends: :derivation do
-  # end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# resource_class :arrange, extends: :derivation do
+# end
