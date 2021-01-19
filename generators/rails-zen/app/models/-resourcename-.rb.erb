@@ -28,6 +28,18 @@ class <%= name.to_s.camelize %> < ApplicationRecord
   has_many :<%= collection_name.to_s.pluralize %>, class_name: '<%= "#{name}_#{collection_name}".camelize %>', inverse_of: :<%= name %>
   <% end %>
 
+  <% resource.has_many_through.each do |target, mapping| %>
+  <% mapping = mapping.to_s %>
+  <% target = target.to_s %>
+  has_many :<%= mapping %>, class_name: '<%= mapping.camelize %>'
+  has_many :<%= target %>, through: :<%= mapping %>, class_name: '<%= target.camelize %>'
+  <% end %>
+
+  <% resource.has_many.each do |target, _| %>
+  <% target = target.to_s %>
+  has_many :<%= target %>, class_name: '<%= target.camelize %>'
+  <% end %>
+
   <% if resource.parent_name %>
   belongs_to :<%= resource.parent_name %>, autosave: true
   validates :<%= resource.parent_name %>, presence: true

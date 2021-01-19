@@ -128,6 +128,29 @@ class ManyResolver
   def has_many_of(table)
     @relationships[table].to_a
   end
+
+  def get_has_many_throughs(table)
+    result = {}
+
+    @relationships[table].each do |item|
+      if @mapping_tables[item]
+        result[@mapping_tables[item][0]] = item if @mapping_tables[item][0] != table
+        result[@mapping_tables[item][1]] = item if @mapping_tables[item][1] != table
+      end
+    end
+
+    result
+  end
+
+  def get_has_manys(table)
+    result = {}
+
+    @relationships[table].each do |item|
+      result[item] = true unless @mapping_tables[item]
+    end
+
+    result
+  end
 end
 
 # generator
@@ -179,12 +202,20 @@ class Generator
 
     mr = ManyResolver.new
 
+    resources_in_order.each do |arr|
+      arr.each do |resourcename|
+        r = expanded_resources[resourcename]
+        mr.add(resourcename, r)
+      end
+    end
+
     # Prepare main resource classes
     resources_in_order.each do |arr|
       arr.each do |resourcename|
         r = expanded_resources[resourcename]
         result[resourcename] = make_prepared_resource(resourcename, r, result)
-        mr.add(resourcename, r)
+        result[resourcename].has_many_through = mr.get_has_many_throughs(resourcename)
+        result[resourcename].has_many = mr.get_has_manys(resourcename)
       end
     end
 
@@ -192,13 +223,7 @@ class Generator
       fields = {}
       fields[tables[0]] = { type: tables[1] }
       fields[tables[1]] = { type: tables[0] }
-      result[mt] = PreparedResourceClass.new(
-        fields,
-        nil,
-        nil,
-        {},
-        nil
-      )
+      result[mt] = PreparedResourceClass.new(fields)
     end
 
     { **result }
@@ -303,6 +328,8 @@ class PreparedResourceClass
               :collections,
               :owner
 
+  attr_accessor :has_many, :has_many_through
+
   def initialize(fields,
                  parent_name = nil,
                  parent_resource = nil,
@@ -313,6 +340,8 @@ class PreparedResourceClass
     @parent_resource = parent_resource
     @collections = collections
     @owner = owner
+    @has_many_through = {}
+    @has_many = {}
   end
 
   def parent_fields
