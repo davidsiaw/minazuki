@@ -8,8 +8,8 @@ module ObjectApiService
     @inner = inner
     generate_before!(resource_meta)
     describe_get!(resource_meta)
-    describe_put!(resource_meta)
-    describe_delete!(resource_meta)
+    describe_put!(resource_meta) if resource_meta.editable?
+    describe_delete!(resource_meta) if resource_meta.deletable?
     describe_fields(resource_meta)
   end
 

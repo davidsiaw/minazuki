@@ -6,16 +6,28 @@ class <%= name.to_s.camelize %>Meta < ResourceMeta
     :<%= name %>
   end
 
+  def writable?
+    <%= resource.writable %>
+  end
+
+  def editable?
+    <%= resource.editable %>
+  end
+
+  def deletable?
+    <%= resource.deletable %>
+  end
+
   def fields
     if @fields.nil?
       @fields = {}
       <% resource.fields.each do |field_name, field| %>
-      @fields[:<%= field_name %>] = { type: :<%= field[:type] %> }
+      @fields[:<%= field_name %>] = { type: :<%= field[:type] %>, writable: <%= !!field[:writable] %> }
       <% end %>  
       <% resource.parent_fields.each do |parent, fields| %>
       # Inherited from <%= parent %>
       <%   fields.each do |field_name, field| %>
-      @fields[:<%= field_name %>] = { type: :<%= field[:type] %> }
+      @fields[:<%= field_name %>] = { type: :<%= field[:type] %>, writable: <%= !!field[:writable] %> }
       <%   end %>
       <% end %>  
       <% if resource.owner %>

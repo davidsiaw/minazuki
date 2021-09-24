@@ -1,1 +1,2 @@
-docker-compose -f rails-zen/docker-compose.unit.yml down -v
+cd rails-zen
+docker-compose down -v

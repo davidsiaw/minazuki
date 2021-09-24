@@ -5,7 +5,7 @@ module CollectionApiService
   def describe(resource_meta, inner: false)
     @resource_meta = resource_meta
     describe_get(resource_meta)
-    describe_post(resource_meta)
+    describe_post(resource_meta) if resource_meta.writable?
     describe_count(resource_meta)
     describe_changes(resource_meta)
     describe_object(resource_meta, inner: inner)
@@ -87,7 +87,9 @@ module CollectionApiService
     post do
       begin
         filtered_params = resource_meta.filter_params(params)
-        present rclass.create!(filtered_params), with: ObjectPresenter.new(resource_meta)
+        result = rclass.create!(filtered_params)
+        "#{resource_meta.name.to_s.camelize}ProcessingWorker".constantize.perform_async(:create, result.id)
+        present result, with: ObjectPresenter.new(resource_meta)
       rescue ActiveRecord::RecordInvalid
         error!({ error: :invalid_value }, 400)
       end

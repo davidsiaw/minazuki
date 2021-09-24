@@ -5,6 +5,7 @@ require 'date'
 require 'fileutils'
 require 'erubis'
 require 'bunny/tsort'
+require 'method_source'
 
 # Global generator
 class GlobalGenerator
@@ -103,11 +104,24 @@ class Generator
     @dsl = dsl
   end
 
+  def prepare_program!
+    repo = ENV['REPO'] || 'git@github.com:davidsiaw/rails-zen'
+    `rm -rf rails-zen`
+    `git clone #{repo}`
+    files = Dir['rails-zen/**/*']
+    files.each do |file|
+      next unless File.file?(file)
+
+      content = File.read(file)
+      content = content.gsub('rails_zen', 'meowery').gsub('RailsZen', 'Meowery')
+      File.write(file, content)
+    end
+  end
+
   def generate
-    prepare_program!
     generate_resources!
     generate_globals!
-    system 'cd rails-zen && rubocop --auto-correct'
+    system 'cd rails-zen && rubocop -A'
   end
 
   def basic_types
@@ -157,8 +171,12 @@ class Generator
   def make_prepared_resource(resource_name, resource, result)
     PreparedResourceClass.new(
       resource.fields,
+      resource.writable,
+      resource.editable,
+      resource.deletable,
       resource.parent,
       result[resource.parent],
+      resource.triggers,
       resource.collections.map { |k, _| [k, { type: :"#{resource_name}_#{k}" }] }.to_h,
       expander.owners[resource_name]
     )
@@ -207,19 +225,6 @@ class Generator
     end
   end
 
-  def prepare_program!
-    repo = ENV['REPO'] || 'git@github.com:davidsiaw/rails-zen'
-    `rm -rf rails-zen`
-    `git clone #{repo}`
-    files = Dir['rails-zen/**/*']
-    files.each do |file|
-      next unless File.file?(file)
-
-      content = File.read(file)
-      content = content.gsub('rails_zen', 'meowery').gsub('RailsZen', 'Meowery')
-      File.write(file, content)
-    end
-  end
 
   def owners_of(resource)
     result = []
@@ -251,14 +256,26 @@ class PreparedResourceClass
               :parent_name,
               :parent_resource,
               :collections,
-              :owner
+              :owner,
+              :writable,
+              :editable,
+              :deletable,
+              :triggers
 
   def initialize(fields,
+                 writable,
+                 editable,
+                 deletable,
                  parent_name = nil,
                  parent_resource = nil,
+                 triggers = {},
                  collections = {},
                  owner = nil)
+    @writable = writable
+    @editable = editable
+    @deletable = deletable
     @fields = fields
+    @triggers = triggers
     @parent_name = parent_name
     @parent_resource = parent_resource
     @collections = collections
@@ -285,15 +302,34 @@ end
 
 # resource
 class ResourceClass
-  attr_reader :fields, :parent, :collections
+  attr_reader :fields,
+              :parent,
+              :collections,
+              :writable,
+              :editable,
+              :deletable,
+              :triggers
 
-  def initialize(parent_class:)
+  def initialize(parent_class:,
+                 writable:,
+                 editable:,
+                 deletable:)
     @fields = {}
     @parent = parent_class
     @collections = {}
+    @writable = writable
+    @editable = editable
+    @deletable = deletable
+    @triggers = {}
   end
 
   private
+
+  def on_create(&block)
+    res = block.source.sub(/on_create +do +\|([^\|]+)\|/, 'def run (\1)')
+    # puts res
+    @triggers[:create] = res
+  end
 
   def field(name, options = {})
     raise 'fields cannot start with underscore' if name.to_s.start_with?('_')
@@ -301,8 +337,16 @@ class ResourceClass
     @fields[name] = options
   end
 
-  def collection(name, &block)
-    crc = ResourceClass.new(parent_class: nil)
+  def collection(name,
+                 writable:,
+                 editable:,
+                 deletable:,
+                 &block)
+    crc = ResourceClass.new(parent_class: nil,
+      writable: writable,
+      editable: editable,
+      deletable: deletable
+      )
     crc.instance_eval(&block)
     @collections[name] = crc
   end
@@ -318,8 +362,18 @@ class DSL
 
   private
 
-  def resource_class(name, extends: nil, &block)
-    rc = ResourceClass.new(parent_class: extends)
+  def resource_class(name,
+      extends: nil,
+      writable: false,
+      editable: false,
+      deletable: false,
+      &block)
+    rc = ResourceClass.new(
+        parent_class: extends,
+        writable: writable,
+        editable: editable,
+        deletable: deletable,
+      )
     rc.instance_eval(&block)
     @resources[name] = rc
   end
@@ -327,13 +381,29 @@ end
 
 dsl = DSL.new
 dsl.instance_eval do
-  resource_class :song do
+  resource_class :create_artist_command, writable: true do
+    field :name, type: :string, writable: true
+    field :status, type: :string
+
+    on_create do |x|
+      if (x.name.start_with?('david'))
+        return
+      end
+      Artist.create!(name: x.name)
+    end
+  end
+
+  resource_class :artist do
     field :name, type: :string
   end
+
 end
 
 gen = Generator.new dsl
+gen.prepare_program! if ENV['REBUILD']
 gen.generate
+
+return
 
 if ENV['REPO']
   exec <<~START
