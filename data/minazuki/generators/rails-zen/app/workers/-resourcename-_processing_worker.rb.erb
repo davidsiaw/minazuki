@@ -1,0 +1,22 @@
+<% resource.triggers.each do |triggername, code| %>
+
+# Triggers for <%= name %>
+class <%= name.to_s.camelize %><%= triggername.to_s.camelize %>Trigger
+<%= code %>
+end
+<% end %>
+
+# Worker class for <%= name %>
+class <%= name.to_s.camelize %>ProcessingWorker
+  include Sidekiq::Worker
+
+  def perform(action, object_id)
+    trigger = "<%= name.to_s.camelize %>#{action.to_s.camelize}Trigger".safe_constantize
+
+    if trigger.nil?
+      return
+    end
+
+    trigger.new.run(<%= name.to_s.camelize %>.find(object_id))
+  end
+end
