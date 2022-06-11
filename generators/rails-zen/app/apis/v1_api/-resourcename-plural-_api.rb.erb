@@ -1,0 +1,7 @@
+# frozen_string_literal: true
+
+# Endpoint to access <%= name.to_s.pluralize.humanize %>
+class <%= name.to_s.pluralize.camelize %>Api < Grape::API
+  extend CollectionApiService
+  describe(<%= name.to_s.camelize %>Meta.new)
+end

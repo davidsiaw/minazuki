@@ -2,7 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe V1::<%= name.to_s.pluralize.camelize %>Api, type: :request do
+RSpec.describe <%= name.to_s.pluralize.camelize %>Api, type: :request do
   context 'when there are no items' do
     it 'returns empty set of <%= name.to_s.pluralize %>' do
       get '/api/v1/<%= name.to_s.pluralize %>'

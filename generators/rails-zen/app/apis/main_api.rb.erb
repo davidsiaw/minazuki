@@ -12,10 +12,10 @@ class MainApi < Grape::API
     version 'v1', using: :path
     <% resources.each do |resource_name, resource| %>
     resource :<%= resource_name.to_s.pluralize %> do
-      mount V1::<%= resource_name.to_s.pluralize.camelize %>Api
+      mount <%= resource_name.to_s.pluralize.camelize %>Api
     end
     <% end %>
-    mount V1::HealthApi
+    mount HealthApi
   end
 
   mount V1Api
